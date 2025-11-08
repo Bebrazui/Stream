@@ -31,7 +31,7 @@ export function PostCard({ post }: { post: Post }) {
       <CardContent className="px-4 pb-2 pt-0">
         <p className="whitespace-pre-wrap">{post.content}</p>
         {post.imageUrl && (
-          <div className="mt-4 overflow-hidden rounded-lg border">
+          <div className="relative mt-4 overflow-hidden rounded-lg border">
             <Image
               src={post.imageUrl}
               alt="Post image"

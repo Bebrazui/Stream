@@ -14,8 +14,7 @@ const gunzip = promisify(zlib.gunzip);
 const postSchema = z.object({
   content: z.string().min(1).max(280),
   category: z.enum(['programming', 'nature', 'games', 'other']),
-  imageUrl: z.string().url().optional().or(z.literal('')),
-  linkUrl: z.string().url().optional().or(z.literal('')),
+  imageUrl: z.string().optional(),
 });
 
 export async function createPost(data: z.infer<typeof postSchema>) {
