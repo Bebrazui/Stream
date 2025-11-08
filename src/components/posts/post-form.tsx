@@ -188,7 +188,7 @@ export function PostForm({ createPostAction }: PostFormProps) {
                 <FormItem>
                   <FormLabel>Image (Optional)</FormLabel>
                   <FormControl>
-                    <>
+                    <div>
                       <div
                         onDrop={onDrop}
                         onDragOver={onDragOver}
@@ -229,7 +229,7 @@ export function PostForm({ createPostAction }: PostFormProps) {
                           </div>
                         )}
                       </div>
-                    </>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
