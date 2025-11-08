@@ -49,7 +49,7 @@ export async function createPost(data: z.infer<typeof postSchema>) {
     Accept: 'application/vnd.github.v3+json',
   };
 
-  let posts = [];
+  let posts: any[] = [];
   let existingFileSha: string | undefined;
 
   try {
