@@ -65,8 +65,9 @@ export async function createPost(data: z.infer<typeof postSchema>) {
       console.log(`File ${filePath} not found. Creating a new one.`);
     } else {
       // Another error occurred
-      console.error('Error fetching file from GitHub:', error.response?.data || error.message);
-      throw new Error('Could not retrieve posts from the repository.');
+      const errorMessage = error.response?.data?.message || error.message;
+      console.error('Error fetching file from GitHub:', errorMessage);
+      throw new Error(`Could not retrieve posts: ${errorMessage}`);
     }
   }
   
@@ -102,10 +103,8 @@ export async function createPost(data: z.infer<typeof postSchema>) {
     );
     console.log(`Post successfully saved to GitHub repo: ${filePath}`);
   } catch (error: any) {
-     console.error('Error saving file to GitHub:', error.response?.data || error.message);
-     throw new Error('Could not save post to the repository.');
+     const errorMessage = error.response?.data?.message || error.message;
+     console.error('Error saving file to GitHub:', errorMessage);
+     throw new Error(`Could not save post: ${errorMessage}`);
   }
-
-  // We don't need a redirect here anymore, but a revalidation might be useful in the future.
-  // For now, let's just confirm it worked.
 }

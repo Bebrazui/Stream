@@ -149,11 +149,11 @@ export function PostForm({ createPostAction }: PostFormProps) {
       });
       form.reset();
       setImagePreview(null);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to create post. Please try again.',
+        title: 'Failed to create post',
+        description: error.message || 'An unknown error occurred.',
       });
     }
   }
