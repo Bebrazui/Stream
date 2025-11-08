@@ -106,6 +106,6 @@ export async function createPost(data: z.infer<typeof postSchema>) {
      throw new Error('Could not save post to the repository.');
   }
 
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // We don't need a redirect here anymore, but a revalidation might be useful in the future.
+  // For now, let's just confirm it worked.
 }
