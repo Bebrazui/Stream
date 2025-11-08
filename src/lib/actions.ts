@@ -4,6 +4,12 @@ import { z } from 'zod';
 import { promises as fs } from 'fs';
 import path from 'path';
 import msgpack from 'msgpack-lite';
+import { promisify } from 'util';
+import zlib from 'zlib';
+
+const gzip = promisify(zlib.gzip);
+const gunzip = promisify(zlib.gunzip);
+
 
 const postSchema = z.object({
   content: z.string().min(1).max(280),
@@ -31,12 +37,13 @@ export async function createPost(data: z.infer<typeof postSchema>) {
   try {
     const dataDir = path.join(process.cwd(), 'data');
     await fs.mkdir(dataDir, { recursive: true });
-    const filePath = path.join(dataDir, `${category}.msgpack`);
+    const filePath = path.join(dataDir, `${category}.msgpack.gz`);
     
     let posts = [];
     try {
       const fileContent = await fs.readFile(filePath);
-      posts = msgpack.decode(fileContent);
+      const decompressed = await gunzip(fileContent);
+      posts = msgpack.decode(decompressed);
     } catch (error) {
       // File probably doesn't exist, which is fine.
     }
@@ -55,7 +62,9 @@ export async function createPost(data: z.infer<typeof postSchema>) {
     posts.push(newPost);
     
     const encodedData = msgpack.encode(posts);
-    await fs.writeFile(filePath, encodedData);
+    const compressedData = await gzip(encodedData);
+    await fs.writeFile(filePath, compressedData);
+
     console.log(`Post saved to ${filePath}`);
   } catch (error) {
     console.error("Failed to save post to file", error);
