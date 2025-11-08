@@ -53,26 +53,21 @@ export async function createPost(data: z.infer<typeof postSchema>) {
   let existingFileSha: string | undefined;
 
   try {
-    // 1. Try to get the existing file to get its SHA and content
     const { data: fileData } = await axios.get(apiUrl, { headers });
     existingFileSha = fileData.sha;
     const buffer = Buffer.from(fileData.content, 'base64');
     const decompressed = await gunzip(buffer);
     posts = msgpack.decode(decompressed);
-  } catch (error: any) {
+  } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
-      // File doesn't exist, which is fine. We will create it.
-      // existingFileSha remains undefined, so the PUT request will be a file creation.
-      console.log(`File ${filePath} not found. Creating a new one.`);
+      console.log(`File ${filePath} not found. A new one will be created.`);
+      existingFileSha = undefined;
     } else {
-      // Another error occurred
-      const errorMessage = error.response?.data?.message || error.message;
-      console.error('Error fetching file from GitHub:', errorMessage, error.response?.data);
-      throw new Error(`Could not retrieve posts: ${errorMessage}`);
+      console.error('Error fetching file from GitHub:', error);
+      throw error; 
     }
   }
   
-  // 2. Add the new post
   const newPost = {
     id: `post-${Date.now()}-${Math.random().toString(36).substring(7)}`,
     ...postData,
@@ -83,29 +78,26 @@ export async function createPost(data: z.infer<typeof postSchema>) {
     shares: 0,
   };
 
-  posts.unshift(newPost); // Add to the beginning
+  posts.unshift(newPost); 
 
-  // 3. Encode, compress, and base64-encode the new content
   const encodedData = msgpack.encode(posts);
   const compressedData = await gzip(encodedData);
   const newContentBase64 = compressedData.toString('base64');
 
-  // 4. Create or update the file in the GitHub repository
   try {
     await axios.put(
       apiUrl,
       {
         message: `feat: add post to ${category}`,
         content: newContentBase64,
-        sha: existingFileSha, // if undefined, GitHub creates a new file. if provided, it updates.
+        sha: existingFileSha,
         branch: 'main'
       },
       { headers }
     );
     console.log(`Post successfully saved to GitHub repo: ${filePath}`);
-  } catch (error: any) {
-     const errorMessage = error.response?.data?.message || error.message;
-     console.error('Error saving file to GitHub:', errorMessage, error.response?.data);
-     throw new Error(`Could not save post: ${errorMessage}`);
+  } catch (error) {
+     console.error('Error saving file to GitHub:', error);
+     throw error;
   }
 }

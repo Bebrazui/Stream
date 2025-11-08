@@ -66,7 +66,6 @@ async function compressImage(file: File): Promise<string> {
         }
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         
-        // The third parameter is the quality of the image (0 to 1)
         const dataUrl = canvas.toDataURL('image/webp', 0.8);
         resolve(dataUrl);
       };
@@ -150,10 +149,15 @@ export function PostForm({ createPostAction }: PostFormProps) {
       form.reset();
       setImagePreview(null);
     } catch (error: any) {
+      const description =
+        error.response?.data?.message ||
+        error.message ||
+        'An unknown error occurred.';
+
       toast({
         variant: 'destructive',
         title: 'Failed to create post',
-        description: error.message || 'An unknown error occurred.',
+        description: description,
       });
     }
   }
