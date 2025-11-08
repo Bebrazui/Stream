@@ -53,7 +53,7 @@ export async function createPost(data: z.infer<typeof postSchema>) {
   let existingFileSha: string | undefined;
 
   try {
-    // 1. Get the existing file to get its SHA and content
+    // 1. Try to get the existing file to get its SHA and content
     const { data: fileData } = await axios.get(apiUrl, { headers });
     existingFileSha = fileData.sha;
     const buffer = Buffer.from(fileData.content, 'base64');
@@ -62,6 +62,7 @@ export async function createPost(data: z.infer<typeof postSchema>) {
   } catch (error: any) {
     if (error.response && error.response.status === 404) {
       // File doesn't exist, which is fine. We will create it.
+      // existingFileSha remains undefined, so the PUT request will be a file creation.
       console.log(`File ${filePath} not found. Creating a new one.`);
     } else {
       // Another error occurred
@@ -96,8 +97,8 @@ export async function createPost(data: z.infer<typeof postSchema>) {
       {
         message: `feat: add post to ${category}`,
         content: newContentBase64,
-        sha: existingFileSha, // Required for updates
-        branch: 'main' // Or your default branch
+        sha: existingFileSha, // if undefined, GitHub creates a new file. if provided, it updates.
+        branch: 'main'
       },
       { headers }
     );
