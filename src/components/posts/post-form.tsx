@@ -16,7 +16,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { AiSuggestionButton } from '@/components/ai/ai-suggestion-button';
 
 const postSchema = z.object({
   content: z.string().min(1, 'Post content cannot be empty.').max(280, 'Post content is too long.'),
@@ -106,8 +105,7 @@ export function PostForm({ createPostAction }: PostFormProps) {
                 </FormItem>
               )}
             />
-            <div className="flex items-center justify-between gap-4">
-              <AiSuggestionButton onSuggestionClick={(suggestion) => form.setValue('content', suggestion)} />
+            <div className="flex items-center justify-end gap-4">
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? 'Posting...' : 'Post'}
               </Button>
