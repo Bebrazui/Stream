@@ -11,14 +11,23 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import type { PostCategory } from '@/types';
 
 const postSchema = z.object({
   content: z.string().min(1, 'Post content cannot be empty.').max(280, 'Post content is too long.'),
+  category: z.enum(['programming', 'nature', 'games', 'other']),
   imageUrl: z.string().url('Please enter a valid image URL.').optional().or(z.literal('')),
   linkUrl: z.string().url('Please enter a valid link URL.').optional().or(z.literal('')),
 });
@@ -29,12 +38,20 @@ type PostFormProps = {
   createPostAction: (data: PostFormValues) => Promise<void>;
 };
 
+const categories: { value: PostCategory; label: string }[] = [
+    { value: 'programming', label: 'Programming' },
+    { value: 'nature', label: 'Nature' },
+    { value: 'games', label: 'Games' },
+    { value: 'other', label: 'Other' },
+];
+
 export function PostForm({ createPostAction }: PostFormProps) {
   const { toast } = useToast();
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
     defaultValues: {
       content: '',
+      category: 'other',
       imageUrl: '',
       linkUrl: '',
     },
@@ -75,6 +92,30 @@ export function PostForm({ createPostAction }: PostFormProps) {
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
