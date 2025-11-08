@@ -60,14 +60,14 @@ export async function createPost(data: z.infer<typeof postSchema>) {
     const decompressed = await gunzip(buffer);
     posts = msgpack.decode(decompressed);
   } catch (error: any) {
-    if (error.response && error.response.status === 404) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
       // File doesn't exist, which is fine. We will create it.
       // existingFileSha remains undefined, so the PUT request will be a file creation.
       console.log(`File ${filePath} not found. Creating a new one.`);
     } else {
       // Another error occurred
       const errorMessage = error.response?.data?.message || error.message;
-      console.error('Error fetching file from GitHub:', errorMessage);
+      console.error('Error fetching file from GitHub:', errorMessage, error.response?.data);
       throw new Error(`Could not retrieve posts: ${errorMessage}`);
     }
   }
@@ -105,7 +105,7 @@ export async function createPost(data: z.infer<typeof postSchema>) {
     console.log(`Post successfully saved to GitHub repo: ${filePath}`);
   } catch (error: any) {
      const errorMessage = error.response?.data?.message || error.message;
-     console.error('Error saving file to GitHub:', errorMessage);
+     console.error('Error saving file to GitHub:', errorMessage, error.response?.data);
      throw new Error(`Could not save post: ${errorMessage}`);
   }
 }
