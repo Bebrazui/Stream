@@ -72,7 +72,7 @@ export async function createPost(data: z.infer<typeof postSchema>) {
   
   // 2. Add the new post
   const newPost = {
-    id: `post-${Date.now()}-${Math.random()}`,
+    id: `post-${Date.now()}-${Math.random().toString(36).substring(7)}`,
     ...postData,
     author: { id: `user-current-${Date.now()}`, name: 'You', username: 'currentuser', avatarUrl: 'https://picsum.photos/seed/currentUser/200/200' },
     createdAt: new Date().toISOString(),
