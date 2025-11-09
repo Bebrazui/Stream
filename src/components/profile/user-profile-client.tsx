@@ -7,23 +7,32 @@ import { Button } from '@/components/ui/button';
 import { PostCard } from '@/components/posts/post-card';
 import { Card, CardContent } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/auth-context';
 
 type UserProfileClientProps = {
   user: User;
   posts: Post[];
-  isCurrentUserProfile: boolean;
 };
 
-export function UserProfileClient({ user, posts, isCurrentUserProfile }: UserProfileClientProps) {
+export function UserProfileClient({ user, posts }: UserProfileClientProps) {
   const router = useRouter();
+  const { user: currentUser } = useAuth(); // Get the logged-in user
   const [isFollowing, setIsFollowing] = useState(false); // Placeholder state
   
+  // Determine if the viewed profile is the current user's profile
+  const isCurrentUserProfile = currentUser?.username === user.username;
+
   // A more realistic follower count would come from props if available
   const [followerCount, setFollowerCount] = useState(user.followers || 0);
 
   const handleFollowToggle = () => {
+    // This would typically involve an API call
     setIsFollowing(!isFollowing);
     setFollowerCount(isFollowing ? followerCount - 1 : followerCount + 1);
+  };
+
+  const handleEditProfile = () => {
+    router.push('/settings/profile');
   };
 
   return (
@@ -51,7 +60,7 @@ export function UserProfileClient({ user, posts, isCurrentUserProfile }: UserPro
                     </div>
                     <div>
                         {isCurrentUserProfile ? (
-                            <Button variant="outline" onClick={() => router.push('/profile/currentuser/edit')}>Edit Profile</Button>
+                            <Button variant="outline" onClick={handleEditProfile}>Edit Profile</Button>
                         ) : (
                             <Button onClick={handleFollowToggle}>
                             {isFollowing ? 'Following' : 'Follow'}

@@ -4,11 +4,11 @@ import { getPosts } from '@/lib/actions';
 export default async function HomePage() {
   const posts = await getPosts();
   return (
-    // By removing the wrapper with `h-full` and `overflow-y-auto`, we allow the parent layout to handle scrolling.
-    // This div now only structures the immediate content.
-    <div className="mx-auto flex max-w-2xl flex-col gap-4 py-4">
+    <div className="h-full overflow-y-auto snap-y snap-mandatory scroll-smooth no-scrollbar">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} />
+        <div key={post.id} className="h-full snap-start flex items-center justify-center">
+          <PostCard post={post} />
+        </div>
       ))}
     </div>
   );

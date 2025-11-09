@@ -14,31 +14,30 @@ import {
   Home,
   Search,
   PlusSquare,
-  User,
   Waves,
-  Settings,
-  LogOut,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/context/auth-context';
+import { useInteraction } from '@/context/interaction-context';
+import { Button } from '@/components/ui/button';
 
-const currentUser = {
-  id: 'user-5',
-  name: 'You',
-  username: 'currentuser',
-  avatarUrl: 'https://picsum.photos/seed/currentUser/200/200',
-  bio: 'Just browsing...',
-  followers: 42,
-  following: 123,
-};
 
 const menuItems = [
-  { href: '/home', label: 'Home', icon: Home },
-  { href: '/search', label: 'Search', icon: Search },
-  { href: '/compose', label: 'Compose Post', icon: PlusSquare },
+  { href: '/home', label: 'Home', icon: Home, requiresAuth: false },
+  { href: '/search', label: 'Search', icon: Search, requiresAuth: false },
+  { href: '/compose', label: 'Compose Post', icon: PlusSquare, requiresAuth: true },
 ];
 
 export function SiteSidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
+  const { requireAuth } = useInteraction();
+
+  const handleMenuClick = (item: typeof menuItems[0], e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (item.requiresAuth && !requireAuth()) {
+      e.preventDefault();
+    }
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -50,7 +49,7 @@ export function SiteSidebar() {
       <SidebarMenu className="flex-1">
         {menuItems.map((item) => (
           <SidebarMenuItem key={item.href}>
-            <Link href={item.href}>
+            <Link href={item.href} onClick={(e) => handleMenuClick(item, e)}>
               <SidebarMenuButton
                 isActive={pathname === item.href}
                 tooltip={item.label}
@@ -64,15 +63,21 @@ export function SiteSidebar() {
       </SidebarMenu>
 
       <SidebarFooter className="p-2">
-         <Link href={`/profile/${currentUser.username}`}>
-            <SidebarMenuButton tooltip="Profile">
-                <Avatar className="h-7 w-7">
-                    <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
-                    <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <span>Profile</span>
-            </SidebarMenuButton>
-        </Link>
+        {user ? (
+             <Link href={`/profile/${user.username}`}>
+                <SidebarMenuButton tooltip="Profile">
+                    <Avatar className="h-7 w-7">
+                        <AvatarImage src={user.avatarUrl ?? ''} alt={user.username} />
+                        <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <span>Profile</span>
+                </SidebarMenuButton>
+            </Link>
+        ) : (
+          <div className="flex flex-col items-stretch px-2">
+            <Button onClick={() => requireAuth()}>Login</Button>
+          </div>
+        )}
       </SidebarFooter>
     </Sidebar>
   );

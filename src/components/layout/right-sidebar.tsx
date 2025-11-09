@@ -1,6 +1,9 @@
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { SuggestedUsers } from '@/components/users/suggested-users';
 
 const categories = [
     { name: "Programming", href: "/search?q=programming" },
@@ -26,12 +29,12 @@ export function RightSidebar() {
                     </div>
                 </CardContent>
             </Card>
-             <Card>
+            <Card>
                 <CardHeader>
                     <CardTitle>Who to follow</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-sm text-muted-foreground">Coming soon!</p>
+                    <SuggestedUsers />
                 </CardContent>
             </Card>
         </div>
