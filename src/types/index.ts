@@ -8,13 +8,22 @@ export type User = {
   bio?: string; // Optional bio field
 };
 
+export type Comment = {
+    id: string;
+    text: string;
+    author: User;
+    createdAt: string;
+}
+
 export type Post = {
   id: string;
   content: string;
   imageUrl?: string;
+  linkUrl?: string;
   author: User;
   createdAt: string;
   likes: number;
-  comments: number;
+  comments: Comment[];
+  commentCount: number;
   shares: number;
 };

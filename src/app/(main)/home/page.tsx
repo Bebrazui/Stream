@@ -1,17 +1,31 @@
 import { PostCard } from '@/components/posts/post-card';
 import { getPosts } from '@/lib/actions';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel"
 
 export default async function HomePage() {
   const posts = await getPosts();
   return (
-    // The container now has a defined height and enables snapping
-    <div className="h-full w-full snap-y snap-mandatory overflow-y-scroll">
-      {/* Each child is a snap point, filling the height of the container */}
-      {posts.map((post) => (
-        <div key={post.id} className="flex h-full w-full snap-start items-center justify-center py-6">
-          <PostCard post={post} />
-        </div>
-      ))}
+    <div className="h-full w-full">
+      <Carousel
+        opts={{dragFree: true}}
+        orientation="vertical"
+        className="w-full h-full"
+      >
+        <CarouselContent className="h-full">
+          {posts.map((post) => (
+            <CarouselItem key={post.id} className="basis-full">
+              {/* This div is now a full-height container with padding, which is the correct context for the self-constraining PostCard. */}
+              <div className="flex h-full w-full items-center justify-center py-4">
+                <PostCard post={post} />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
     </div>
   );
 }

@@ -24,8 +24,8 @@ export default function MainLayout({
              </div>
           </aside>
 
-          {/* Main Content: A non-scrolling container that provides a height context for its children */}
-          <main className="col-span-12 md:col-span-9 lg:col-span-7">
+          {/* Main Content: Takes full height of its container, allowing the carousel within to manage its own scrolling. */}
+          <main className="col-span-12 md:col-span-9 lg:col-span-7 h-full">
             {children}
           </main>
 
