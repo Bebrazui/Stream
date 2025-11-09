@@ -11,25 +11,26 @@ export default function MainLayout({
 }) {
   return (
     <SidebarProvider>
-      {/* The outer container has a fixed height of the screen and hides overflow */}
-      <div className="flex h-screen flex-col overflow-hidden">
+      {/* 
+        The layout has been radically simplified. 
+        Removed all `h-screen`, `overflow`, and `flex-1` properties.
+        This allows the entire page to scroll naturally as one document, which is the most robust solution.
+      */}
+      <div className="w-full">
         <SiteHeader />
-        {/* The grid now takes up the remaining space and allows the main column to handle its own overflow */}
-        <div className="grid w-full flex-1 grid-cols-12 gap-x-6 overflow-hidden px-4 sm:px-6 lg:gap-x-8">
+        <div className="grid grid-cols-12 gap-x-6 px-4 sm:px-6 lg:gap-x-8">
           
-          {/* Left Sidebar: Stays sticky */}
           <aside className="hidden md:col-span-3 lg:col-span-2 md:block">
+             {/* The sidebars remain sticky to the top of the viewport as the page scrolls. */}
              <div className="sticky top-20">
                 <SiteSidebar />
              </div>
           </aside>
 
-          {/* Main Content: Takes full height of its container, allowing the carousel within to manage its own scrolling. */}
-          <main className="col-span-12 md:col-span-9 lg:col-span-7 h-full">
+          <main className="col-span-12 md:col-span-9 lg:col-span-7 py-4">
             {children}
           </main>
 
-          {/* Right Sidebar: Stays sticky */}
           <aside className="hidden lg:col-span-3 lg:block">
             <div className="sticky top-20">
                 <RightSidebar />

@@ -22,8 +22,8 @@ export function PostCard({ post }: { post: Post }) {
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
 
   return (
-    // The card is a flex column that is limited to the height of its container.
-    <Card className="w-full max-w-2xl overflow-hidden transition-shadow duration-300 ease-in-out hover:shadow-lg flex flex-col max-h-full">
+    // The card is now a simple block element with natural height.
+    <Card className="w-full max-w-2xl transition-shadow duration-300 ease-in-out hover:shadow-lg">
       <CardHeader className="flex flex-row items-start gap-4 p-4">
         <Link href={`/profile/${post.author.username}`}>
           <Avatar>
@@ -40,9 +40,10 @@ export function PostCard({ post }: { post: Post }) {
           </p>
         </div>
       </CardHeader>
-      {/* This inner div takes up the remaining space and becomes scrollable. */}
-      <div className="overflow-y-auto">
-        <CardContent className="px-4 pb-2 pt-0">
+
+      {/* The scrolling container is no longer needed. */}
+      <div>
+        <CardContent className="px-4 pt-0">
           <p className="whitespace-pre-wrap">{post.content}</p>
           {post.imageUrl && (
             <div className="relative mt-4 overflow-hidden rounded-lg border">
@@ -70,6 +71,7 @@ export function PostCard({ post }: { post: Post }) {
             </a>
           )}
         </CardContent>
+
         <CardFooter className="flex-col items-start px-4 pb-4 pt-2">
           <div className="flex w-full justify-between text-muted-foreground">
             <Button variant="ghost" size="sm" className="flex items-center gap-2">
