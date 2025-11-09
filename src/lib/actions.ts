@@ -123,6 +123,11 @@ async function saveAccounts(accounts: UserCredentials[], sha?: string) {
     await updateGitHubFile(GITHUB_ACCOUNTS_REPO_URL!, ACCOUNTS_FILE_PATH, encrypted, sha);
 }
 
+export async function getUsers(): Promise<User[]> {
+    const { accounts } = await getAccounts();
+    return accounts.map(({ hashedPassword, ...user }) => user);
+}
+
 export async function register(data: z.infer<typeof authSchema>) {
     const validated = authSchema.safeParse(data);
     if (!validated.success) {
