@@ -1,15 +1,17 @@
 import { PostCard } from '@/components/posts/post-card';
-import { posts } from '@/lib/data';
+import { getPosts } from '@/lib/actions';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const posts = await getPosts();
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 font-headline text-3xl font-bold">Home</h1>
-      <div className="flex flex-col gap-6">
-        {posts.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
-      </div>
+    // The container now has a defined height and enables snapping
+    <div className="h-full w-full snap-y snap-mandatory overflow-y-scroll">
+      {/* Each child is a snap point, filling the height of the container */}
+      {posts.map((post) => (
+        <div key={post.id} className="flex h-full w-full snap-start items-center justify-center py-6">
+          <PostCard post={post} />
+        </div>
+      ))}
     </div>
   );
 }

@@ -11,7 +11,8 @@ export function PostCard({ post }: { post: Post }) {
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
 
   return (
-    <Card className="overflow-hidden transition-shadow duration-300 ease-in-out hover:shadow-lg">
+    // Reverted to a card-based layout with a max-width.
+    <Card className="w-full max-w-2xl overflow-hidden transition-shadow duration-300 ease-in-out hover:shadow-lg">
       <CardHeader className="flex flex-row items-start gap-4 p-4">
         <Link href={`/profile/${post.author.username}`}>
           <Avatar>

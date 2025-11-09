@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { PostCard } from '@/components/posts/post-card';
 import { Card, CardContent } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
 
 type UserProfileClientProps = {
   user: User;
@@ -14,16 +15,15 @@ type UserProfileClientProps = {
 };
 
 export function UserProfileClient({ user, posts, isCurrentUserProfile }: UserProfileClientProps) {
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followerCount, setFollowerCount] = useState(user.followers);
+  const router = useRouter();
+  const [isFollowing, setIsFollowing] = useState(false); // Placeholder state
+  
+  // A more realistic follower count would come from props if available
+  const [followerCount, setFollowerCount] = useState(user.followers || 0);
 
   const handleFollowToggle = () => {
-    if (isFollowing) {
-      setFollowerCount(followerCount - 1);
-    } else {
-      setFollowerCount(followerCount + 1);
-    }
     setIsFollowing(!isFollowing);
+    setFollowerCount(isFollowing ? followerCount - 1 : followerCount + 1);
   };
 
   return (
@@ -35,7 +35,7 @@ export function UserProfileClient({ user, posts, isCurrentUserProfile }: UserPro
             <div className="-mt-16 sm:-mt-24">
               <div className="relative h-24 w-24 rounded-full border-4 border-card sm:h-32 sm:w-32">
                 <Image
-                  src={user.avatarUrl}
+                  src={user.avatarUrl || 'https://picsum.photos/seed/placeholder/200/200'} // Fallback avatar
                   alt={user.name}
                   fill
                   className="rounded-full object-cover"
@@ -51,7 +51,7 @@ export function UserProfileClient({ user, posts, isCurrentUserProfile }: UserPro
                     </div>
                     <div>
                         {isCurrentUserProfile ? (
-                            <Button variant="outline">Edit Profile</Button>
+                            <Button variant="outline" onClick={() => router.push('/profile/currentuser/edit')}>Edit Profile</Button>
                         ) : (
                             <Button onClick={handleFollowToggle}>
                             {isFollowing ? 'Following' : 'Follow'}
@@ -59,9 +59,10 @@ export function UserProfileClient({ user, posts, isCurrentUserProfile }: UserPro
                         )}
                     </div>
                 </div>
-                 <p className="mt-2 text-sm">{user.bio}</p>
+                 {/* Display Bio if it exists */}
+                 {user.bio && <p className="mt-2 text-sm text-muted-foreground">{user.bio}</p>}
                  <div className="mt-2 flex items-center gap-4 text-sm">
-                    <p><span className="font-bold">{user.following}</span> Following</p>
+                    <p><span className="font-bold">{user.following || 0}</span> Following</p>
                     <p><span className="font-bold">{followerCount}</span> Followers</p>
                  </div>
             </div>

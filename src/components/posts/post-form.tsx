@@ -25,7 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { PostCategory } from '@/types';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, Sparkles } from 'lucide-react';
 
 const postSchema = z.object({
   content: z.string().min(1, 'Post content cannot be empty.').max(280, 'Post content is too long.'),
@@ -44,6 +44,14 @@ const categories: { value: PostCategory; label: string }[] = [
     { value: 'nature', label: 'Nature' },
     { value: 'games', label: 'Games' },
     { value: 'other', label: 'Other' },
+];
+
+const aiPrompts = [
+  "What is a technology that you are excited about and why?",
+  "Share a photo of your favorite place in nature and describe it.",
+  "What is the most memorable game you have ever played and what made it so special?",
+  "If you could have any superpower, what would it be and how would you use it?",
+  "What is a small thing that brought you joy this week?",
 ];
 
 async function compressImage(file: File): Promise<string> {
@@ -138,6 +146,11 @@ export function PostForm({ createPostAction }: PostFormProps) {
     form.setValue('imageUrl', '');
     setImagePreview(null);
   }
+
+  const suggestIdea = () => {
+    const randomPrompt = aiPrompts[Math.floor(Math.random() * aiPrompts.length)];
+    form.setValue('content', randomPrompt);
+  };
 
   async function onSubmit(data: PostFormValues) {
     try {
@@ -265,7 +278,11 @@ export function PostForm({ createPostAction }: PostFormProps) {
               )}
             />
             
-            <div className="flex items-center justify-end gap-4">
+            <div className="flex items-center justify-between gap-4">
+                <Button type="button" variant="outline" onClick={suggestIdea}>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Suggest Idea
+                </Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 {form.formState.isSubmitting ? 'Posting...' : 'Post'}
               </Button>

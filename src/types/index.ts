@@ -1,22 +1,18 @@
+export type PostCategory = 'programming' | 'nature' | 'games' | 'other';
+
 export type User = {
   id: string;
   name: string;
   username: string;
   avatarUrl: string;
-  bio: string;
-  followers: number;
-  following: number;
+  bio?: string; // Optional bio field
 };
-
-export type PostCategory = 'programming' | 'nature' | 'games' | 'other';
 
 export type Post = {
   id: string;
-  author: User;
   content: string;
-  category: PostCategory;
   imageUrl?: string;
-  linkUrl?: string;
+  author: User;
   createdAt: string;
   likes: number;
   comments: number;

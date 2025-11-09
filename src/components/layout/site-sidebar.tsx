@@ -20,7 +20,16 @@ import {
   LogOut,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { currentUser } from '@/lib/data';
+
+const currentUser = {
+  id: 'user-5',
+  name: 'You',
+  username: 'currentuser',
+  avatarUrl: 'https://picsum.photos/seed/currentUser/200/200',
+  bio: 'Just browsing...',
+  followers: 42,
+  following: 123,
+};
 
 const menuItems = [
   { href: '/home', label: 'Home', icon: Home },
