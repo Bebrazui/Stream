@@ -27,11 +27,30 @@ export function PostCard({ post }: { post: Post }) {
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
 
   const handleLike = () => {
+    const originalLikes = likes;
+    const originalIsLiked = isLiked;
+
+    // Optimistic update
+    setLikes(isLiked ? likes - 1 : likes + 1);
+    setIsLiked(!isLiked);
+
     startTransition(async () => {
-        const result = await updatePostLikes(post.id, currentUser.id);
-        if (result.success) {
-            setLikes(result.likes!);
-            setIsLiked(result.likedBy!.includes(currentUser.id));
+        try {
+            const result = await updatePostLikes(post.id, currentUser.id);
+            if (!result.success) {
+                // Revert if server update fails
+                setLikes(originalLikes);
+                setIsLiked(originalIsLiked);
+            } else {
+                // Optional: Sync with server state if needed, though often not necessary
+                // setLikes(result.likes!);
+                // setIsLiked(result.likedBy!.includes(currentUser.id));
+            }
+        } catch (error) {
+            console.error('Failed to update like:', error);
+            // Revert on any error
+            setLikes(originalLikes);
+            setIsLiked(originalIsLiked);
         }
     });
   };

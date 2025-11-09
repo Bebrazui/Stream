@@ -5,7 +5,7 @@ export type User = {
   name: string;
   username: string;
   avatarUrl: string;
-  bio?: string; // Optional bio field
+  bio?: string; 
 };
 
 export type Comment = {
