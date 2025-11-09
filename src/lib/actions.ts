@@ -257,6 +257,7 @@ export async function createPost(data: z.infer<typeof postSchema>, author: User)
     author: { id: author.id, name: author.name, username: author.username, avatarUrl: author.avatarUrl },
     createdAt: new Date().toISOString(),
     likes: 0,
+    likedBy: [],
     comments: [],
     commentCount: 0,
     shares: 0,
@@ -311,6 +312,72 @@ export async function addComment(postId: string, text: string, author: User) {
     revalidatePath('/');
     return { success: true };
 }
+
+export async function updatePostLikes(postId: string, userId: string) {
+    const allPosts = await getPosts();
+    const post = allPosts.find(p => p.id === postId);
+    if (!post) throw new Error('Post not found');
+
+    const categoryMatch = post.id.match(/post-([^-]+)-/);
+    if (!categoryMatch) throw new Error('Could not determine category from post ID');
+    const category = categoryMatch[1];
+
+    if (!post.likedBy) post.likedBy = [];
+
+    const userIndex = post.likedBy.indexOf(userId);
+    if (userIndex === -1) {
+        post.likedBy.push(userId);
+        post.likes++;
+    } else {
+        post.likedBy.splice(userIndex, 1);
+        post.likes--;
+    }
+    
+    const categoryPosts = allPosts.filter(p => {
+        const pCategoryMatch = p.id.match(/post-([^-]+)-/);
+        return pCategoryMatch ? pCategoryMatch[1] === category : false;
+    });
+    const postToUpdate = categoryPosts.find(p => p.id === postId);
+    if (postToUpdate) Object.assign(postToUpdate, post);
+
+    const filePath = `data/${category}.msgpack.gz`;
+    const file = await getGitHubFile(GITHUB_REPO_URL!, filePath);
+    const encodedData = msgpack.encode(categoryPosts);
+    const compressedData = await gzip(encodedData);
+    
+    await updateGitHubFile(GITHUB_REPO_URL!, filePath, compressedData, file?.sha);
+    revalidatePath('/');
+    return { success: true, likes: post.likes, likedBy: post.likedBy };
+}
+
+export async function updatePostShares(postId: string) {
+    const allPosts = await getPosts();
+    const post = allPosts.find(p => p.id === postId);
+    if (!post) throw new Error('Post not found');
+
+    const categoryMatch = post.id.match(/post-([^-]+)-/);
+    if (!categoryMatch) throw new Error('Could not determine category from post ID');
+    const category = categoryMatch[1];
+
+    post.shares++;
+    
+    const categoryPosts = allPosts.filter(p => {
+        const pCategoryMatch = p.id.match(/post-([^-]+)-/);
+        return pCategoryMatch ? pCategoryMatch[1] === category : false;
+    });
+    const postToUpdate = categoryPosts.find(p => p.id === postId);
+    if (postToUpdate) Object.assign(postToUpdate, post);
+
+    const filePath = `data/${category}.msgpack.gz`;
+    const file = await getGitHubFile(GITHUB_REPO_URL!, filePath);
+    const encodedData = msgpack.encode(categoryPosts);
+    const compressedData = await gzip(encodedData);
+    
+    await updateGitHubFile(GITHUB_REPO_URL!, filePath, compressedData, file?.sha);
+    revalidatePath('/');
+    return { success: true, shares: post.shares };
+}
+
 
 export async function updateProfile(formData: FormData, user: User) {
   if (!user) {

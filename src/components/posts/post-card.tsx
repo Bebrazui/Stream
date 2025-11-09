@@ -2,13 +2,14 @@
 import type { Post } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState, useTransition } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, Repeat, Share, Link as LinkIcon } from 'lucide-react';
 import { PostComments } from './post-comments';
-import { addComment } from '@/lib/actions';
+import { addComment, updatePostLikes, updatePostShares } from '@/lib/actions';
 
 const currentUser = {
     id: 'user-4', 
@@ -19,10 +20,38 @@ const currentUser = {
 };
 
 export function PostCard({ post }: { post: Post }) {
+  const [isPending, startTransition] = useTransition();
+  const [likes, setLikes] = useState(post.likes);
+  const [isLiked, setIsLiked] = useState(post.likedBy?.includes(currentUser.id));
+  const [shares, setShares] = useState(post.shares);
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
 
+  const handleLike = () => {
+    startTransition(async () => {
+        const result = await updatePostLikes(post.id, currentUser.id);
+        if (result.success) {
+            setLikes(result.likes!);
+            setIsLiked(result.likedBy!.includes(currentUser.id));
+        }
+    });
+  };
+
+  const handleShare = () => {
+    startTransition(async () => {
+        const result = await updatePostShares(post.id);
+        if (result.success) {
+            setShares(result.shares!);
+        }
+    });
+  };
+
+  const handleCopyLink = () => {
+    const postUrl = `${window.location.origin}/post/${post.id}`;
+    navigator.clipboard.writeText(postUrl);
+    // Optionally, show a toast or confirmation message.
+  };
+
   return (
-    // The card is now a simple block element with natural height.
     <Card className="w-full max-w-2xl transition-shadow duration-300 ease-in-out hover:shadow-lg">
       <CardHeader className="flex flex-row items-start gap-4 p-4">
         <Link href={`/profile/${post.author.username}`}>
@@ -41,7 +70,6 @@ export function PostCard({ post }: { post: Post }) {
         </div>
       </CardHeader>
 
-      {/* The scrolling container is no longer needed. */}
       <div>
         <CardContent className="px-4 pt-0">
           <p className="whitespace-pre-wrap">{post.content}</p>
@@ -78,17 +106,19 @@ export function PostCard({ post }: { post: Post }) {
               <MessageCircle className="h-5 w-5" />
               <span>{post.commentCount}</span>
             </Button>
-            <Button variant="ghost" size="sm" className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleShare}>
               <Repeat className="h-5 w-5" />
-              <span>{post.shares}</span>
+              <span>{shares}</span>
             </Button>
-            <Button variant="ghost" size="sm" className="flex items-center gap-2">
-              <Heart className="h-5 w-5" />
-              <span>{post.likes}</span>
+            <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLike} disabled={isPending}>
+              <Heart className={`h-5 w-5 ${isLiked ? 'text-red-500 fill-current' : ''}`} />
+              <span>{likes}</span>
             </Button>
-            <Button variant="ghost" size="sm">
-              <Share className="h-5 w-5" />
-            </Button>
+            <div className="relative">
+                <Button variant="ghost" size="sm" onClick={handleCopyLink}>
+                    <Share className="h-5 w-5" />
+                </Button>
+            </div>
           </div>
 
           <div className="mt-4 w-full">

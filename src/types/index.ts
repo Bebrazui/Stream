@@ -23,6 +23,7 @@ export type Post = {
   author: User;
   createdAt: string;
   likes: number;
+  likedBy?: string[];
   comments: Comment[];
   commentCount: number;
   shares: number;
