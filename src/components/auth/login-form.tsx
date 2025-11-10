@@ -35,20 +35,28 @@ export function LoginForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const result = await login(values);
-    if (result.error) {
-      toast({ 
-        title: "Login Failed",
-        description: result.error, 
-        variant: "destructive",
-      });
-    } else if (result.success && result.user) {
-      authLogin(result.user);
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-      // The modal will be closed by the parent component
+    try {
+        const result = await login(values);
+        if (result.error) {
+            toast({ 
+                title: "Login Failed",
+                description: result.error, 
+                variant: "destructive",
+            });
+        } else if (result.success && result.user) {
+            authLogin(result.user);
+            toast({
+                title: "Login Successful",
+                description: "Welcome back!",
+            });
+        }
+    } catch (error) {
+        console.error("Login Submit Error:", error);
+        toast({
+            title: "An Unexpected Error Occurred",
+            description: "Something went wrong. Please try again.",
+            variant: "destructive",
+        });
     }
   }
 
