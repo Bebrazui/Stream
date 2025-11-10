@@ -10,6 +10,22 @@ import zlib from 'zlib';
 import msgpack from 'msgpack-lite';
 import { Post, User, Comment, UserCredentials } from '@/types';
 
+// --- Helper function to create a clean user profile object ---
+function createCleanUserProfile(user: UserCredentials): User {
+    const { hashedPassword, ...userProfile } = user;
+    return {
+        id: userProfile.id,
+        username: userProfile.username,
+        name: userProfile.name || userProfile.username, // Fallback for name
+        avatarUrl: userProfile.avatarUrl || `https://i.pravatar.cc/150?u=${userProfile.username}`,
+        bio: userProfile.bio || '',
+        followers: userProfile.followers || 0,
+        following: userProfile.following || 0,
+        profileTheme: userProfile.profileTheme || 'default', // Add missing fields with defaults
+        avatarFrame: userProfile.avatarFrame || 'none', // Add missing fields with defaults
+    };
+}
+
 // Environment variables validation
 const {
     GITHUB_TOKEN,
@@ -136,7 +152,7 @@ export async function register(data: z.infer<typeof authSchema>) {
     const { username, password } = validated.data;
 
     const { accounts, sha } = await getAccounts();
-    if (accounts.find(u => u.username === username)) {
+    if (accounts.find(u => u.username.toLowerCase() === username.toLowerCase())) {
         return { error: "Username already exists." };
     }
 
@@ -152,12 +168,14 @@ export async function register(data: z.infer<typeof authSchema>) {
         bio: "",
         followers: 0,
         following: 0,
+        profileTheme: 'default',
+        avatarFrame: 'none'
     };
 
     accounts.push(newUser);
     await saveAccounts(accounts, sha);
 
-    return { success: true, user: { username, name: newUser.name, avatarUrl: newUser.avatarUrl, bio: newUser.bio } };
+    return { success: true, user: createCleanUserProfile(newUser) };
 }
 
 export async function login(data: z.infer<typeof authSchema>) {
@@ -168,7 +186,7 @@ export async function login(data: z.infer<typeof authSchema>) {
     const { username, password } = validated.data;
     
     const { accounts } = await getAccounts();
-    const user = accounts.find(u => u.username === username);
+    const user = accounts.find(u => u.username.toLowerCase() === username.toLowerCase());
     if (!user) {
         return { error: "Invalid username or password." };
     }
@@ -180,8 +198,7 @@ export async function login(data: z.infer<typeof authSchema>) {
         return { error: "Invalid username or password." };
     }
 
-    const { hashedPassword, ...userProfile } = user;
-    return { success: true, user: userProfile };
+    return { success: true, user: createCleanUserProfile(user) };
 }
 
 // --- Public Profile & Post Actions (Modified for public/private data) ---
