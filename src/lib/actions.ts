@@ -9,6 +9,7 @@ import { promisify } from 'util';
 import zlib from 'zlib';
 import msgpack from 'msgpack-lite';
 import { Post, User, Comment, UserCredentials } from '@/types';
+import { createSession, getSessionUser, deleteSession } from '@/lib/session';
 
 // --- Helper function to create a clean user profile object ---
 function createCleanUserProfile(user: UserCredentials): User {
@@ -16,13 +17,13 @@ function createCleanUserProfile(user: UserCredentials): User {
     return {
         id: userProfile.id,
         username: userProfile.username,
-        name: userProfile.name || userProfile.username, // Fallback for name
+        name: userProfile.name || userProfile.username,
         avatarUrl: userProfile.avatarUrl || `https://i.pravatar.cc/150?u=${userProfile.username}`,
         bio: userProfile.bio || '',
         followers: userProfile.followers || 0,
         following: userProfile.following || 0,
-        profileTheme: userProfile.profileTheme || 'default', // Add missing fields with defaults
-        avatarFrame: userProfile.avatarFrame || 'none', // Add missing fields with defaults
+        profileTheme: userProfile.profileTheme || 'default', 
+        avatarFrame: userProfile.avatarFrame || 'none',
     };
 }
 
@@ -35,7 +36,7 @@ const {
 } = process.env;
 
 if (!GITHUB_TOKEN || !GITHUB_REPO_URL || !GITHUB_ACCOUNTS_REPO_URL || !CRYPTO_SECRET_KEY) {
-    throw new Error('Missing one or more critical environment variables. Please check GITHUB_TOKEN, GITHUB_REPO_URL, GITHUB_ACCOUNTS_REPO_URL, and CRYPTO_SECRET_KEY.');
+    throw new Error('Missing one or more critical environment variables.');
 }
 
 if (CRYPTO_SECRET_KEY.length !== 64) {
@@ -55,13 +56,15 @@ const profileSchema = z.object({
   avatarUrl: z.string().url('Please enter a valid URL.').optional(),
 });
 
+// Updated schema for our new math captcha
 const authSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters."),
     password: z.string().min(6, "Password must be at least 6 characters."),
+    captchaAnswer: z.string().min(1, "Please answer the security question."),
+    captchaToken: z.string().min(1, "CAPTCHA token is missing."),
 });
 
-
-// --- Utilities (Compression, Encryption, GitHub) ---
+// --- Utilities (Encryption, GitHub) ---
 const gzip = promisify(zlib.gzip);
 const gunzip = promisify(zlib.gunzip);
 const ENCRYPTION_KEY = Buffer.from(CRYPTO_SECRET_KEY, 'hex');
@@ -118,6 +121,24 @@ function decrypt(data: Buffer): Buffer {
     return Buffer.concat([decipher.update(encrypted), decipher.final()]);
 }
 
+// --- CAPTCHA Generation ---
+export async function generateCaptcha() {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    const correctAnswer = num1 + num2;
+
+    const question = `What is ${num1} + ${num2}?`;
+    
+    // Encrypt the correct answer to create a secure token
+    const tokenBuffer = Buffer.from(correctAnswer.toString(), 'utf8');
+    const encryptedToken = encrypt(tokenBuffer).toString('hex');
+
+    return {
+        captchaQuestion: question,
+        captchaToken: encryptedToken,
+    };
+}
+
 // --- User & Auth Actions ---
 const ACCOUNTS_FILE_PATH = 'accounts.msgpack.gz.enc';
 
@@ -139,31 +160,33 @@ async function saveAccounts(accounts: UserCredentials[], sha?: string) {
     await updateGitHubFile(GITHUB_ACCOUNTS_REPO_URL!, ACCOUNTS_FILE_PATH, encrypted, sha);
 }
 
-export async function getUsers(): Promise<User[]> {
-    const { accounts } = await getAccounts();
-    return accounts.map(({ hashedPassword, ...user }) => user);
+// --- CAPTCHA Verification Helper ---
+async function verifyCaptcha(token: string, answer: string): Promise<boolean> {
+    try {
+        const decryptedBuffer = decrypt(Buffer.from(token, 'hex'));
+        const correctAnswer = decryptedBuffer.toString('utf8');
+        return answer.trim() === correctAnswer;
+    } catch (error) {
+        console.error("CAPTCHA decryption failed:", error);
+        return false;
+    }
 }
 
-export async function register(data: z.infer<typeof authSchema>) {
-    console.log("--- Starting Registration ---");
-    console.log("Received data:", data);
 
+export async function register(data: z.infer<typeof authSchema>) {
     const validated = authSchema.safeParse(data);
-    if (!validated.success) {
-        console.error("Validation failed:", validated.error.flatten().fieldErrors);
-        return { error: "Invalid data. " + validated.error.flatten().fieldErrors };
+    if (!validated.success) return { error: "Invalid data." };
+    const { username, password, captchaAnswer, captchaToken } = validated.data;
+
+    const isCaptchaValid = await verifyCaptcha(captchaToken, captchaAnswer);
+    if (!isCaptchaValid) {
+        return { error: "Incorrect answer to the security question. Please try again." };
     }
-    console.log("Validation successful.");
-    const { username, password } = validated.data;
 
     const { accounts, sha } = await getAccounts();
-    console.log(`Found ${accounts.length} existing accounts.`);
-
     if (accounts.find(u => u.username.toLowerCase() === username.toLowerCase())) {
-        console.warn(`Registration failed: Username '${username}' already exists.`);
         return { error: "Username already exists." };
     }
-    console.log(`Username '${username}' is available.`);
 
     const salt = crypto.randomBytes(16).toString('hex');
     const hashedPassword = (await promisify(crypto.pbkdf2)(password, salt, 100000, 64, 'sha512')).toString('hex');
@@ -174,118 +197,51 @@ export async function register(data: z.infer<typeof authSchema>) {
         hashedPassword: `${salt}:${hashedPassword}`,
         name: username,
         avatarUrl: `https://i.pravatar.cc/150?u=${username}`,
-        bio: "",
-        followers: 0,
-        following: 0,
-        profileTheme: 'default',
-        avatarFrame: 'none'
+        bio: "", followers: 0, following: 0, profileTheme: 'default', avatarFrame: 'none'
     };
-    console.log("New user created (before saving):", createCleanUserProfile(newUser));
 
     accounts.push(newUser);
     await saveAccounts(accounts, sha);
-    console.log("Successfully saved accounts.");
-
-    console.log("--- Registration Finished ---");
-    return { success: true, user: createCleanUserProfile(newUser) };
+    
+    const userProfile = createCleanUserProfile(newUser);
+    await createSession(userProfile); 
+    return { success: true, user: userProfile };
 }
 
 export async function login(data: z.infer<typeof authSchema>) {
-    console.log("--- Starting Login ---");
-    console.log("Received data:", data);
-
     const validated = authSchema.safeParse(data);
-    if (!validated.success) {
-        console.error("Validation failed:", validated.error.flatten().fieldErrors);
-        return { error: "Invalid data." };
+    if (!validated.success) return { error: "Invalid data." };
+    const { username, password, captchaAnswer, captchaToken } = validated.data;
+
+    const isCaptchaValid = await verifyCaptcha(captchaToken, captchaAnswer);
+    if (!isCaptchaValid) {
+        return { error: "Incorrect answer to the security question. Please try again." };
     }
-    console.log("Validation successful.");
-    const { username, password } = validated.data;
     
     const { accounts } = await getAccounts();
-    console.log(`Found ${accounts.length} existing accounts.`);
-
     const user = accounts.find(u => u.username.toLowerCase() === username.toLowerCase());
-    if (!user) {
-        console.warn(`Login failed: User '${username}' not found.`);
-        return { error: "Invalid username or password." };
-    }
-    console.log(`User '${username}' found.`);
+    if (!user) return { error: "Invalid username or password." };
 
     const [salt, storedHash] = user.hashedPassword.split(':');
     const hash = (await promisify(crypto.pbkdf2)(password, salt, 100000, 64, 'sha512')).toString('hex');
-
-    if (hash !== storedHash) {
-        console.warn(`Login failed: Password for user '${username}' does not match.`);
-        return { error: "Invalid username or password." };
-    }
-    console.log("Password matches.");
-
-    console.log("--- Login Finished ---");
-    return { success: true, user: createCleanUserProfile(user) };
+    if (hash !== storedHash) return { error: "Invalid username or password." };
+    
+    const userProfile = createCleanUserProfile(user);
+    await createSession(userProfile); 
+    return { success: true, user: userProfile };
 }
 
-
-// --- Public Profile & Post Actions (Modified for public/private data) ---
-
-export async function getSuggestedUsers(currentUsername?: string): Promise<User[]> {
-    const { accounts } = await getAccounts();
-    // Exclude current user and remove sensitive data
-    const suggested = accounts
-        .filter(u => u.username !== currentUsername)
-        .map(({ hashedPassword, ...user }) => user);
-    return suggested.slice(0, 5); // Return top 5 suggestions
+export async function logout() {
+    await deleteSession();
+    redirect('/');
 }
 
-export async function getUserByUsername(username: string): Promise<User | null> {
-    if (username === 'currentuser') { // Temporary handler for guest/demo user
-        return { id: `user-current-16927837433`, name: 'Guest User', username: 'currentuser', avatarUrl: 'https://picsum.photos/seed/currentUser/200/200', posts:[] };
-    }
-    const { accounts } = await getAccounts();
-    const user = accounts.find(u => u.username === username);
-    if (!user) return null;
+// --- Public & Protected Actions ---
 
-    const userPosts = await getPosts();
-    const { hashedPassword, ...userProfile } = user;
+export async function createPost(data: z.infer<typeof postSchema>) {
+  const author = await getSessionUser();
+  if (!author) return { error: "Authentication required. Please log in." };
 
-    return { ...userProfile, posts: userPosts.filter(p => p.author.username === username) };
-}
-
-export async function getPosts(): Promise<Post[]> {
-    const categories = ['programming', 'nature', 'games', 'other'];
-    const postPromises = categories.map(getPostsByCategory);
-    const allPostsNested = await Promise.all(postPromises);
-    const allPosts = allPostsNested.flat();
-    allPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return allPosts;
-}
-
-async function getPostsByCategory(category: string): Promise<Post[]> {
-    const filePath = `data/${category}.msgpack.gz`;
-    const fileData = await getGitHubFile(GITHUB_REPO_URL!, filePath);
-    if (!fileData) return [];
-    try {
-        const buffer = Buffer.from(fileData.content, 'base64');
-        const decompressed = await gunzip(buffer);
-        const posts = msgpack.decode(decompressed);
-        return posts.map((post: any) => ({ // Basic migration/validation
-            ...post,
-            commentCount: post.commentCount ?? (post.comments?.length || 0),
-            comments: post.comments || [],
-        }));
-    } catch (error) {
-        console.error(`Error decoding posts for category ${category}:`, error);
-        return [];
-    }
-}
-
-// The actions below need to be called with an authenticated user context.
-// This will be handled client-side by checking IndexedDB.
-
-export async function createPost(data: z.infer<typeof postSchema>, author: User) {
-  if (!author) return { error: "Authentication required." };
-
-  // (Implementation is the same as before, just uses the passed author object)
   const { owner, repo } = parseGitHubUrl(GITHUB_REPO_URL!);
   const { category, ...postData } = data;
   const filePath = `data/${category}.msgpack.gz`;
@@ -320,8 +276,9 @@ export async function createPost(data: z.infer<typeof postSchema>, author: User)
   return { success: true };
 }
 
-export async function addComment(postId: string, text: string, author: User) {
-    if (!author) return { error: "Authentication required." };
+export async function addComment(postId: string, text: string) {
+    const author = await getSessionUser();
+    if (!author) return { error: "Authentication required. Please log in." };
 
     const allPosts = await getPosts();
     const postIndex = allPosts.findIndex(p => p.id === postId);
@@ -335,7 +292,7 @@ export async function addComment(postId: string, text: string, author: User) {
     const newComment: Comment = {
         id: `comment-${Date.now()}`,
         text,
-        author,
+        author, // User is now from the secure session
         createdAt: new Date().toISOString(),
     };
 
@@ -360,7 +317,10 @@ export async function addComment(postId: string, text: string, author: User) {
     return { success: true };
 }
 
-export async function updatePostLikes(postId: string, userId: string) {
+export async function updatePostLikes(postId: string) {
+    const user = await getSessionUser();
+    if (!user) return { error: "Authentication required. Please log in." };
+
     const allPosts = await getPosts();
     const post = allPosts.find(p => p.id === postId);
     if (!post) throw new Error('Post not found');
@@ -371,9 +331,9 @@ export async function updatePostLikes(postId: string, userId: string) {
 
     if (!post.likedBy) post.likedBy = [];
 
-    const userIndex = post.likedBy.indexOf(userId);
+    const userIndex = post.likedBy.indexOf(user.id);
     if (userIndex === -1) {
-        post.likedBy.push(userId);
+        post.likedBy.push(user.id);
         post.likes++;
     } else {
         post.likedBy.splice(userIndex, 1);
@@ -398,6 +358,9 @@ export async function updatePostLikes(postId: string, userId: string) {
 }
 
 export async function updatePostShares(postId: string) {
+    const user = await getSessionUser();
+    if (!user) return { error: "Authentication required. Please log in." };
+
     const allPosts = await getPosts();
     const post = allPosts.find(p => p.id === postId);
     if (!post) throw new Error('Post not found');
@@ -425,10 +388,10 @@ export async function updatePostShares(postId: string) {
     return { success: true, shares: post.shares };
 }
 
-
-export async function updateProfile(formData: FormData, user: User) {
+export async function updateProfile(formData: FormData) {
+  const user = await getSessionUser();
   if (!user) {
-    return { error: 'Authentication required.' };
+    return { error: 'Authentication required. Please log in.' };
   }
 
   const data = Object.fromEntries(formData.entries());
@@ -445,10 +408,66 @@ export async function updateProfile(formData: FormData, user: User) {
     return { error: 'User not found.' };
   }
 
-  // Update only the fields that are present in validated.data
   Object.assign(accounts[userIndex], validated.data);
 
   await saveAccounts(accounts, sha);
   revalidatePath(`/profile/${user.username}`);
-  return { success: true, user: { ...user, ...validated.data } };
+  
+  const updatedUserProfile = { ...user, ...validated.data };
+  await createSession(updatedUserProfile);
+
+  return { success: true, user: updatedUserProfile };
+}
+
+// --- Functions that remain public ---
+
+export async function getUsers(): Promise<User[]> {
+    const { accounts } = await getAccounts();
+    return accounts.map(createCleanUserProfile);
+}
+
+export async function getSuggestedUsers(): Promise<User[]> {
+    const currentUser = await getSessionUser();
+    const { accounts } = await getAccounts();
+    const suggested = accounts
+        .filter(u => u.username !== currentUser?.username)
+        .map(createCleanUserProfile);
+    return suggested.slice(0, 5);
+}
+
+export async function getUserByUsername(username: string): Promise<User | null> {
+    const { accounts } = await getAccounts();
+    const user = accounts.find(u => u.username === username);
+    if (!user) return null;
+
+    const userPosts = await getPosts();
+    return { ...createCleanUserProfile(user), posts: userPosts.filter(p => p.author.username === username) };
+}
+
+export async function getPosts(): Promise<Post[]> {
+    const categories = ['programming', 'nature', 'games', 'other'];
+    const postPromises = categories.map(getPostsByCategory);
+    const allPostsNested = await Promise.all(postPromises);
+    const allPosts = allPostsNested.flat();
+    allPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return allPosts;
+}
+
+async function getPostsByCategory(category: string): Promise<Post[]> {
+    const filePath = `data/${category}.msgpack.gz`;
+    const fileData = await getGitHubFile(GITHUB_REPO_URL!, filePath);
+    if (!fileData) return [];
+    try {
+        const buffer = Buffer.from(fileData.content, 'base64');
+        const decompressed = await gunzip(buffer);
+        const posts = msgpack.decode(decompressed);
+        return posts.map((post: any) => ({ 
+            ...post,
+            commentCount: post.commentCount ?? (post.comments?.length || 0),
+            comments: post.comments || [],
+        }));
+    } catch (error) {
+        console.error(`Error decoding posts for category ${category}:`, error);
+        return [];
+    }
 }

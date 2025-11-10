@@ -1,8 +1,9 @@
 'use client'
-import type { Post } from '@/types';
+
+import type { Post, User } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useTransition } from 'react';
+import * as React from 'react'; // Use namespace import for React
 import { formatDistanceToNow } from 'date-fns';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,23 +11,27 @@ import { Button } from '@/components/ui/button';
 import { Heart, MessageCircle, Repeat, Share, Link as LinkIcon } from 'lucide-react';
 import { PostComments } from './post-comments';
 import { addComment, updatePostLikes, updatePostShares } from '@/lib/actions';
+import { useToast } from '@/components/ui/use-toast';
 
-const currentUser = {
-    id: 'user-4', 
-    name: 'You',
-    username: 'current_user',
-    avatarUrl: 'https://i.pravatar.cc/150?u=user-4',
-    bio: 'This is the currently logged-in user.',
-};
+interface PostCardProps {
+    post: Post;
+    currentUser: User | null; // Can be null if the user is not logged in
+}
 
-export function PostCard({ post }: { post: Post }) {
-  const [isPending, startTransition] = useTransition();
-  const [likes, setLikes] = useState(post.likes);
-  const [isLiked, setIsLiked] = useState(post.likedBy?.includes(currentUser.id));
-  const [shares, setShares] = useState(post.shares);
+export function PostCard({ post, currentUser }: PostCardProps) {
+  const [isPending, startTransition] = React.useTransition();
+  const [likes, setLikes] = React.useState(post.likes);
+  const [isLiked, setIsLiked] = React.useState(currentUser ? post.likedBy?.includes(currentUser.id) : false);
+  const [shares, setShares] = React.useState(post.shares);
+  const { toast } = useToast();
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
 
   const handleLike = () => {
+    if (!currentUser) {
+        toast({ variant: 'destructive', title: 'Please log in to like posts.' });
+        return;
+    }
+
     const originalLikes = likes;
     const originalIsLiked = isLiked;
 
@@ -36,115 +41,111 @@ export function PostCard({ post }: { post: Post }) {
 
     startTransition(async () => {
         try {
-            const result = await updatePostLikes(post.id, currentUser.id);
+            const result = await updatePostLikes(post.id);
             if (!result.success) {
-                // Revert if server update fails
                 setLikes(originalLikes);
                 setIsLiked(originalIsLiked);
-            } else {
-                // Optional: Sync with server state if needed, though often not necessary
-                // setLikes(result.likes!);
-                // setIsLiked(result.likedBy!.includes(currentUser.id));
+                toast({ variant: 'destructive', title: 'Failed to update like.' });
             }
         } catch (error) {
             console.error('Failed to update like:', error);
-            // Revert on any error
             setLikes(originalLikes);
             setIsLiked(originalIsLiked);
+            toast({ variant: 'destructive', title: 'An error occurred.' });
         }
     });
   };
 
   const handleShare = () => {
+    if (!currentUser) {
+      toast({ variant: 'destructive', title: 'Please log in to share posts.' });
+      return;
+    }
+
+    const originalShares = shares;
+    setShares(shares + 1); // Optimistic update
+
     startTransition(async () => {
-        const result = await updatePostShares(post.id);
-        if (result.success) {
-            setShares(result.shares!);
+        try {
+            const result = await updatePostShares(post.id);
+            if (!result.success) {
+                setShares(originalShares);
+                toast({ variant: 'destructive', title: 'Failed to update share count.' });
+            }
+        } catch (error) {
+            console.error('Failed to update share count:', error);
+            setShares(originalShares);
+            toast({ variant: 'destructive', title: 'An error occurred while sharing.' });
         }
     });
   };
 
-  const handleCopyLink = () => {
-    const postUrl = `${window.location.origin}/post/${post.id}`;
-    navigator.clipboard.writeText(postUrl);
-    // Optionally, show a toast or confirmation message.
-  };
 
+  const handleCommentSubmit = async (commentText: string) => {
+    if (!currentUser) {
+        toast({ variant: 'destructive', title: 'Please log in to comment.' });
+        return null;
+    }
+    // Server action will get user from session, no need to pass it
+    const result = await addComment(post.id, commentText);
+    if (result.error) {
+        toast({ variant: 'destructive', title: 'Failed to add comment', description: result.error });
+        return null;
+    }
+    toast({ title: 'Comment posted!' });
+    // In a real app, you'd likely get the new comment object back and update the state
+    // For now, we just revalidate the path on the server.
+    return { success: true }; 
+  };
+  
   return (
-    <Card className="w-full max-w-2xl transition-shadow duration-300 ease-in-out hover:shadow-lg">
-      <CardHeader className="flex flex-row items-start gap-4 p-4">
+    <Card className="w-full max-w-xl mx-auto border-0 sm:border rounded-none sm:rounded-lg shadow-none sm:shadow-md">
+      <CardHeader className="flex flex-row items-center gap-4 p-4">
         <Link href={`/profile/${post.author.username}`}>
-          <Avatar>
-            <AvatarImage src={post.author.avatarUrl} alt={post.author.name} />
-            <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
-          </Avatar>
+            <Avatar>
+              <AvatarImage src={post.author.avatarUrl} alt={`${post.author.name}'s avatar`} />
+              <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
+            </Avatar>
         </Link>
         <div className="flex flex-col">
-          <Link href={`/profile/${post.author.username}`} className="font-bold hover:underline">
-            {post.author.name}
-          </Link>
-          <p className="text-sm text-muted-foreground">
-            @{post.author.username} · {timeAgo}
-          </p>
+            <Link href={`/profile/${post.author.username}`} className="font-bold hover:underline">
+                {post.author.name}
+            </Link>
+            <span className="text-sm text-gray-500">@{post.author.username} Â· {timeAgo}</span>
         </div>
       </CardHeader>
-
-      <div>
-        <CardContent className="px-4 pt-0">
-          <p className="whitespace-pre-wrap">{post.content}</p>
-          {post.imageUrl && (
-            <div className="relative mt-4 overflow-hidden rounded-lg border">
-              <Image
-                src={post.imageUrl}
-                alt="Post image"
-                width={600}
-                height={400}
-                className="aspect-[3/2] w-full object-cover"
-                data-ai-hint="post image"
-              />
+      <CardContent className="px-4 pb-2">
+        <p className="whitespace-pre-wrap">{post.content}</p>
+        {post.imageUrl && (
+            <div className="mt-4 rounded-lg overflow-hidden border">
+                <Image src={post.imageUrl} alt="Post image" width={500} height={500} className="object-cover w-full h-full" />
             </div>
-          )}
-          {post.linkUrl && (
-            <a
-              href={post.linkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 flex items-center gap-3 rounded-lg border p-3 hover:bg-secondary"
-            >
-              <LinkIcon className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
-              <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{post.linkUrl}</p>
-              </div>
-            </a>
-          )}
-        </CardContent>
+        )}
+      </CardContent>
+      <CardFooter className="flex justify-between items-center p-2 border-t">
+        <PostComments post={post} currentUser={currentUser} onCommentSubmit={handleCommentSubmit} />
+        
+        <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={handleLike} className={`${isLiked ? 'text-red-500' : 'text-gray-500'} hover:text-red-500`}>
+                <Heart className={`h-5 w-5 ${isLiked ? 'fill-current' : ''}`} />
+            </Button>
+            <span className="text-sm min-w-[1rem]">{likes > 0 && likes}</span>
+        </div>
 
-        <CardFooter className="flex-col items-start px-4 pb-4 pt-2">
-          <div className="flex w-full justify-between text-muted-foreground">
-            <Button variant="ghost" size="sm" className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5" />
-              <span>{post.commentCount}</span>
+        <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="text-gray-500 hover:text-blue-500">
+                <Repeat className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleShare}>
-              <Repeat className="h-5 w-5" />
-              <span>{shares}</span>
-            </Button>
-            <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLike} disabled={isPending}>
-              <Heart className={`h-5 w-5 ${isLiked ? 'text-red-500 fill-current' : ''}`} />
-              <span>{likes}</span>
-            </Button>
-            <div className="relative">
-                <Button variant="ghost" size="sm" onClick={handleCopyLink}>
-                    <Share className="h-5 w-5" />
-                </Button>
-            </div>
-          </div>
+            <span className="text-sm min-w-[1rem]">{shares > 0 && shares}</span>
+        </div>
 
-          <div className="mt-4 w-full">
-            <PostComments post={post} addComment={addComment} currentUser={currentUser} />
-          </div>
-        </CardFooter>
-      </div>
+        <Button variant="ghost" size="icon" onClick={handleShare} className="text-gray-500 hover:text-green-500">
+          <Share className="h-5 w-5" />
+        </Button>
+        <Button variant="ghost" size="icon" className="text-gray-500 hover:text-indigo-500">
+            <LinkIcon className="h-5 w-5" />
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
