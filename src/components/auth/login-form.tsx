@@ -23,6 +23,8 @@ const formSchema = z.object({
 });
 
 export function LoginForm() {
+  console.log("LoginForm component rendered."); // Log 1: Check if component renders
+
   const { login: authLogin } = useAuth();
   const { toast } = useToast();
 
@@ -35,8 +37,12 @@ export function LoginForm() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log("onSubmit function called with values:", values); // Log 2: Check if submit handler is called
     try {
+        console.log("Calling server action 'login'...");
         const result = await login(values);
+        console.log("Server action 'login' returned:", result);
+
         if (result.error) {
             toast({ 
                 title: "Login Failed",
@@ -51,7 +57,7 @@ export function LoginForm() {
             });
         }
     } catch (error) {
-        console.error("Login Submit Error:", error);
+        console.error("Login Submit Error:", error); // Log 3: Catch any unexpected errors
         toast({
             title: "An Unexpected Error Occurred",
             description: "Something went wrong. Please try again.",

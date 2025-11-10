@@ -145,16 +145,25 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function register(data: z.infer<typeof authSchema>) {
+    console.log("--- Starting Registration ---");
+    console.log("Received data:", data);
+
     const validated = authSchema.safeParse(data);
     if (!validated.success) {
+        console.error("Validation failed:", validated.error.flatten().fieldErrors);
         return { error: "Invalid data. " + validated.error.flatten().fieldErrors };
     }
+    console.log("Validation successful.");
     const { username, password } = validated.data;
 
     const { accounts, sha } = await getAccounts();
+    console.log(`Found ${accounts.length} existing accounts.`);
+
     if (accounts.find(u => u.username.toLowerCase() === username.toLowerCase())) {
+        console.warn(`Registration failed: Username '${username}' already exists.`);
         return { error: "Username already exists." };
     }
+    console.log(`Username '${username}' is available.`);
 
     const salt = crypto.randomBytes(16).toString('hex');
     const hashedPassword = (await promisify(crypto.pbkdf2)(password, salt, 100000, 64, 'sha512')).toString('hex');
@@ -171,35 +180,51 @@ export async function register(data: z.infer<typeof authSchema>) {
         profileTheme: 'default',
         avatarFrame: 'none'
     };
+    console.log("New user created (before saving):", createCleanUserProfile(newUser));
 
     accounts.push(newUser);
     await saveAccounts(accounts, sha);
+    console.log("Successfully saved accounts.");
 
+    console.log("--- Registration Finished ---");
     return { success: true, user: createCleanUserProfile(newUser) };
 }
 
 export async function login(data: z.infer<typeof authSchema>) {
+    console.log("--- Starting Login ---");
+    console.log("Received data:", data);
+
     const validated = authSchema.safeParse(data);
     if (!validated.success) {
+        console.error("Validation failed:", validated.error.flatten().fieldErrors);
         return { error: "Invalid data." };
     }
+    console.log("Validation successful.");
     const { username, password } = validated.data;
     
     const { accounts } = await getAccounts();
+    console.log(`Found ${accounts.length} existing accounts.`);
+
     const user = accounts.find(u => u.username.toLowerCase() === username.toLowerCase());
     if (!user) {
+        console.warn(`Login failed: User '${username}' not found.`);
         return { error: "Invalid username or password." };
     }
+    console.log(`User '${username}' found.`);
 
     const [salt, storedHash] = user.hashedPassword.split(':');
     const hash = (await promisify(crypto.pbkdf2)(password, salt, 100000, 64, 'sha512')).toString('hex');
 
     if (hash !== storedHash) {
+        console.warn(`Login failed: Password for user '${username}' does not match.`);
         return { error: "Invalid username or password." };
     }
+    console.log("Password matches.");
 
+    console.log("--- Login Finished ---");
     return { success: true, user: createCleanUserProfile(user) };
 }
+
 
 // --- Public Profile & Post Actions (Modified for public/private data) ---
 
