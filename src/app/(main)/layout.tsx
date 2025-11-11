@@ -21,11 +21,15 @@ export default function MainLayout({
                <SiteSidebar />
             </aside>
 
-            <main className="col-span-12 md:col-span-9 lg:col-span-7 h-full overflow-y-auto">
+            <div className="hidden md:block col-span-1 h-full border-r border-border -ml-4 -mr-4"></div>
+
+            <main className="col-span-12 md:col-span-8 lg:col-span-6 h-full overflow-y-auto">
               {children}
             </main>
 
-            <aside className="hidden lg:col-span-3 lg:block overflow-y-auto py-4 no-scrollbar">
+            <div className="hidden lg:block col-span-1 h-full border-l border-border -ml-8 -mr-8"></div>
+
+            <aside className="hidden lg:col-span-2 lg:block overflow-y-auto py-4 no-scrollbar">
               <RightSidebar />
             </aside>
 
