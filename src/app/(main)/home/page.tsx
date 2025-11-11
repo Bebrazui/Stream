@@ -9,9 +9,9 @@ export default async function HomePage() {
   ]);
 
   return (
-    <div className="h-full overflow-y-auto snap-y snap-mandatory scroll-smooth no-scrollbar">
+    <div className="h-full overflow-y-auto snap-y snap-mandatory no-scrollbar">
       {posts.map((post) => (
-        <div key={post.id} className="h-full snap-start flex items-center justify-center">
+        <div key={post.id} className="h-full snap-start flex items-center justify-center px-4">
           <PostCard post={post} currentUser={currentUser} />
         </div>
       ))}
