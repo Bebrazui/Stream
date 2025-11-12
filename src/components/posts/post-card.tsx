@@ -99,7 +99,7 @@ export function PostCard({ post, currentUser }: PostCardProps) {
   };
   
   return (
-    <Card className="w-full max-w-xl mx-auto border rounded-lg shadow-md">
+    <Card className="w-full border rounded-lg shadow-md">
       <CardHeader className="flex flex-row items-center gap-4 p-4">
         <Link href={`/profile/${post.author.username}`}>
             <Avatar>
