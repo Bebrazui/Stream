@@ -35,8 +35,9 @@ const postSchema = z.object({
 
 type PostFormValues = z.infer<typeof postSchema>;
 
+// The props now expect the new return type from our server action
 type PostFormProps = {
-  createPostAction: (data: PostFormValues) => Promise<void>;
+  createPostAction: (data: PostFormValues) => Promise<{ success: boolean; error?: string }>;
 };
 
 const categories: { value: PostCategory; label: string }[] = [
@@ -153,24 +154,23 @@ export function PostForm({ createPostAction }: PostFormProps) {
   };
 
   async function onSubmit(data: PostFormValues) {
-    try {
-      await createPostAction(data);
+    // We no longer need a try-catch block here because the server action handles it.
+    const result = await createPostAction(data);
+
+    if (result.success) {
       toast({
         title: 'Post Created!',
         description: 'Your post has been successfully submitted.',
       });
       form.reset();
       setImagePreview(null);
-    } catch (error: any) {
-      const description =
-        error.response?.data?.message ||
-        error.message ||
-        'An unknown error occurred.';
-
+    } else {
+      // If there's an error, display it in the toast.
       toast({
         variant: 'destructive',
         title: 'Failed to create post',
-        description: description,
+        // Use the specific error message from the server.
+        description: result.error || 'An unknown error occurred.',
       });
     }
   }

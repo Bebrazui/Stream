@@ -11,6 +11,26 @@ import msgpack from 'msgpack-lite';
 import { Post, User, Comment, UserCredentials } from '@/types';
 import { createSession, getSessionUser, deleteSession } from '@/lib/session';
 
+// --- Enhanced Logging Helper ---
+function logError(error: any, context: string) {
+  console.error(`\n--- ERROR IN: ${context} ---\n`);
+  if (axios.isAxiosError(error)) {
+    console.error(`Axios Error: ${error.message}`);
+    if (error.response) {
+        console.error("Status:", error.response.status);
+        console.error("Data:", JSON.stringify(error.response.data, null, 2));
+        console.error("Headers:", error.response.headers);
+    }
+  } else if (error instanceof Error) {
+    console.error(`Message: ${error.message}`);
+    console.error(`Stack: ${error.stack}`);
+  } else {
+    console.error("Raw Error Object:", error);
+  }
+  console.error(`Context:`, { context });
+  console.error('--- END ERROR ---\n');
+}
+
 // --- Helper function to create a clean user profile object ---
 function createCleanUserProfile(user: UserCredentials): User {
     const { hashedPassword, ...userProfile } = user;
@@ -56,13 +76,13 @@ const profileSchema = z.object({
   avatarUrl: z.string().url('Please enter a valid URL.').optional(),
 });
 
-// Updated schema for our new math captcha
 const authSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters."),
     password: z.string().min(6, "Password must be at least 6 characters."),
     captchaAnswer: z.string().min(1, "Please answer the security question."),
     captchaToken: z.string().min(1, "CAPTCHA token is missing."),
 });
+
 
 // --- Utilities (Encryption, GitHub) ---
 const gzip = promisify(zlib.gzip);
@@ -87,21 +107,29 @@ async function getGitHubFile(url: string, filePath: string) {
         return { content: data.content, sha: data.sha };
     } catch (error) {
         if (axios.isAxiosError(error) && error.response?.status === 404) return null;
-        throw error;
+        logError(error, `getGitHubFile - ${filePath}`);
+        throw error; 
     }
 }
 
 async function updateGitHubFile(url: string, filePath: string, content: Buffer, sha?: string) {
     const { owner, repo } = parseGitHubUrl(url);
     const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
-    await axios.put(apiUrl, {
-        message: `feat: update ${filePath}`,
-        content: content.toString('base64'),
-        sha, 
-        branch: 'main'
-    }, { 
-        headers: { Authorization: `token ${GITHUB_TOKEN}` }
-    });
+    console.log(`- Attempting to update file on GitHub: ${filePath}`);
+    try {
+        await axios.put(apiUrl, {
+            message: `feat: update ${filePath}`,
+            content: content.toString('base64'),
+            sha, 
+            branch: 'main'
+        }, { 
+            headers: { Authorization: `token ${GITHUB_TOKEN}` }
+        });
+        console.log(`- Successfully updated file on GitHub: ${filePath}`);
+    } catch (error) {
+        logError(error, `updateGitHubFile - ${filePath}`);
+        throw error; // Re-throw to ensure the calling function knows about the failure
+    }
 }
 
 function encrypt(data: Buffer): Buffer {
@@ -129,7 +157,6 @@ export async function generateCaptcha() {
 
     const question = `What is ${num1} + ${num2}?`;
     
-    // Encrypt the correct answer to create a secure token
     const tokenBuffer = Buffer.from(correctAnswer.toString(), 'utf8');
     const encryptedToken = encrypt(tokenBuffer).toString('hex');
 
@@ -143,14 +170,19 @@ export async function generateCaptcha() {
 const ACCOUNTS_FILE_PATH = 'accounts.msgpack.gz.enc';
 
 async function getAccounts(): Promise<{ accounts: UserCredentials[], sha?: string }> {
-    const file = await getGitHubFile(GITHUB_ACCOUNTS_REPO_URL!, ACCOUNTS_FILE_PATH);
-    if (!file) return { accounts: [] };
+    try {
+        const file = await getGitHubFile(GITHUB_ACCOUNTS_REPO_URL!, ACCOUNTS_FILE_PATH);
+        if (!file) return { accounts: [] };
 
-    const encryptedBuffer = Buffer.from(file.content, 'base64');
-    const decryptedBuffer = decrypt(encryptedBuffer);
-    const decompressedBuffer = await gunzip(decryptedBuffer);
-    const accounts = msgpack.decode(decompressedBuffer);
-    return { accounts, sha: file.sha };
+        const encryptedBuffer = Buffer.from(file.content, 'base64');
+        const decryptedBuffer = decrypt(encryptedBuffer);
+        const decompressedBuffer = await gunzip(decryptedBuffer);
+        const accounts = msgpack.decode(decompressedBuffer);
+        return { accounts, sha: file.sha };
+    } catch (error) {
+        logError(error, 'getAccounts');
+        throw new Error('Failed to get or process accounts file.'); 
+    }
 }
 
 async function saveAccounts(accounts: UserCredentials[], sha?: string) {
@@ -160,7 +192,6 @@ async function saveAccounts(accounts: UserCredentials[], sha?: string) {
     await updateGitHubFile(GITHUB_ACCOUNTS_REPO_URL!, ACCOUNTS_FILE_PATH, encrypted, sha);
 }
 
-// --- CAPTCHA Verification Helper ---
 async function verifyCaptcha(token: string, answer: string): Promise<boolean> {
     try {
         const decryptedBuffer = decrypt(Buffer.from(token, 'hex'));
@@ -236,44 +267,72 @@ export async function logout() {
     redirect('/');
 }
 
-// --- Public & Protected Actions ---
+export async function createPost(data: z.infer<typeof postSchema>): Promise<{ success: boolean; error?: string }> {
+    try {
+        const author = await getSessionUser();
+        if (!author) {
+            return { success: false, error: "Authentication required. Please log in." };
+        }
 
-export async function createPost(data: z.infer<typeof postSchema>) {
-  const author = await getSessionUser();
-  if (!author) return { error: "Authentication required. Please log in." };
+        const { category, ...postData } = data;
+        const filePath = `data/${category}.msgpack.gz`;
+        
+        // This will now be inside the try...catch block
+        const file = await getGitHubFile(GITHUB_REPO_URL!, filePath);
+        
+        let posts: any[] = [];
+        if (file) {
+            const buffer = Buffer.from(file.content, 'base64');
+            const decompressed = await gunzip(buffer);
+            posts = msgpack.decode(decompressed);
+        }
+        
+        const newPost: Post = {
+            id: `post-${category}-${Date.now()}`,
+            ...postData,
+            author: { id: author.id, name: author.name, username: author.username, avatarUrl: author.avatarUrl },
+            createdAt: new Date().toISOString(),
+            likes: 0,
+            likedBy: [],
+            comments: [],
+            commentCount: 0,
+            shares: 0,
+        };
 
-  const { owner, repo } = parseGitHubUrl(GITHUB_REPO_URL!);
-  const { category, ...postData } = data;
-  const filePath = `data/${category}.msgpack.gz`;
-  const file = await getGitHubFile(GITHUB_REPO_URL!, filePath);
-  
-  let posts: any[] = [];
-  if (file) {
-      const buffer = Buffer.from(file.content, 'base64');
-      const decompressed = await gunzip(buffer);
-      posts = msgpack.decode(decompressed);
-  }
-  
-  const newPost: Post = {
-    id: `post-${category}-${Date.now()}`,
-    ...postData,
-    author: { id: author.id, name: author.name, username: author.username, avatarUrl: author.avatarUrl },
-    createdAt: new Date().toISOString(),
-    likes: 0,
-    likedBy: [],
-    comments: [],
-    commentCount: 0,
-    shares: 0,
-  };
+        posts.unshift(newPost);
 
-  posts.unshift(newPost);
+        const encodedData = msgpack.encode(posts);
+        const compressedData = await gzip(encodedData);
+        
+        await updateGitHubFile(GITHUB_REPO_URL!, filePath, compressedData, file?.sha);
+        
+        revalidatePath('/');
+        return { success: true };
 
-  const encodedData = msgpack.encode(posts);
-  const compressedData = await gzip(encodedData);
-  
-  await updateGitHubFile(GITHUB_REPO_URL!, filePath, compressedData, file?.sha);
-  revalidatePath('/');
-  return { success: true };
+    } catch (error: any) {
+        logError(error, 'createPost'); // Keep logging the full error on the server
+
+        // Create a user-friendly error message
+        let errorMessage = 'An unexpected error occurred while creating the post.';
+        if (axios.isAxiosError(error) && error.response) {
+            switch (error.response.status) {
+                case 401:
+                case 403:
+                    errorMessage = 'GitHub authentication failed. Please check your GITHUB_TOKEN.';
+                    break;
+                case 404:
+                    errorMessage = 'GitHub repository or file not found. Please check your GITHUB_REPO_URL.';
+                    break;
+                case 422:
+                     errorMessage = 'GitHub reported a validation error. The file might be corrupt or the request is malformed.';
+                    break;
+                default:
+                    errorMessage = `GitHub API Error: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`;
+            }
+        }
+        // Return the specific error message to the client
+        return { success: false, error: errorMessage };
+    }
 }
 
 export async function addComment(postId: string, text: string) {
@@ -292,7 +351,7 @@ export async function addComment(postId: string, text: string) {
     const newComment: Comment = {
         id: `comment-${Date.now()}`,
         text,
-        author, // User is now from the secure session
+        author, 
         createdAt: new Date().toISOString(),
     };
 
@@ -369,7 +428,7 @@ export async function updatePostShares(postId: string) {
     if (!categoryMatch) throw new Error('Could not determine category from post ID');
     const category = categoryMatch[1];
 
-    post.shares++;
+    post.shares = (post.shares || 0) + 1;
     
     const categoryPosts = allPosts.filter(p => {
         const pCategoryMatch = p.id.match(/post-([^-]+)-/);
@@ -419,7 +478,51 @@ export async function updateProfile(formData: FormData) {
   return { success: true, user: updatedUserProfile };
 }
 
-// --- Functions that remain public ---
+
+export async function getPosts(): Promise<Post[]> {
+    try {
+        console.log("--- Starting getPosts ---");
+        const categories = ['programming', 'nature', 'games', 'other'];
+        const postPromises = categories.map(getPostsByCategory);
+        const allPostsNested = await Promise.all(postPromises);
+        const allPosts = allPostsNested.flat();
+        allPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        console.log(`--- Finished getPosts: ${allPosts.length} posts loaded successfully ---`);
+        return allPosts;
+    } catch (error) {
+        logError(error, 'getPosts');
+        throw new Error('A critical error occurred while fetching posts.');
+    }
+}
+
+async function getPostsByCategory(category: string): Promise<Post[]> {
+    const filePath = `data/${category}.msgpack.gz`;
+    console.log(`- Attempting to fetch posts for category: ${category}`);
+    
+    try {
+        const fileData = await getGitHubFile(GITHUB_REPO_URL!, filePath);
+        if (!fileData) {
+            console.log(`- No data file found for category: ${category}. Skipping.`);
+            return [];
+        }
+
+        console.log(`- Decoding file for category: ${category}`);
+        const buffer = Buffer.from(fileData.content, 'base64');
+        const decompressed = await gunzip(buffer);
+        const posts = msgpack.decode(decompressed);
+        console.log(`- Successfully decoded ${posts.length} posts for category: ${category}`);
+
+        return posts.map((post: any) => ({ 
+            ...post,
+            commentCount: post.commentCount ?? (post.comments?.length || 0),
+            comments: post.comments || [],
+        }));
+
+    } catch (error) {
+        logError(error, `getPostsByCategory - Category: ${category}`);
+        throw error;
+    }
+}
 
 export async function getUsers(): Promise<User[]> {
     const { accounts } = await getAccounts();
@@ -429,45 +532,29 @@ export async function getUsers(): Promise<User[]> {
 export async function getSuggestedUsers(): Promise<User[]> {
     const currentUser = await getSessionUser();
     const { accounts } = await getAccounts();
-    const suggested = accounts
-        .filter(u => u.username !== currentUser?.username)
-        .map(createCleanUserProfile);
-    return suggested.slice(0, 5);
+
+    const otherUsers = currentUser
+        ? accounts.filter(u => u.username !== currentUser.username)
+        : accounts;
+
+    for (let i = otherUsers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [otherUsers[i], otherUsers[j]] = [otherUsers[j], otherUsers[i]];
+    }
+
+    return otherUsers.slice(0, 5).map(createCleanUserProfile);
 }
 
 export async function getUserByUsername(username: string): Promise<User | null> {
-    const { accounts } = await getAccounts();
-    const user = accounts.find(u => u.username === username);
-    if (!user) return null;
-
-    const userPosts = await getPosts();
-    return { ...createCleanUserProfile(user), posts: userPosts.filter(p => p.author.username === username) };
-}
-
-export async function getPosts(): Promise<Post[]> {
-    const categories = ['programming', 'nature', 'games', 'other'];
-    const postPromises = categories.map(getPostsByCategory);
-    const allPostsNested = await Promise.all(postPromises);
-    const allPosts = allPostsNested.flat();
-    allPosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return allPosts;
-}
-
-async function getPostsByCategory(category: string): Promise<Post[]> {
-    const filePath = `data/${category}.msgpack.gz`;
-    const fileData = await getGitHubFile(GITHUB_REPO_URL!, filePath);
-    if (!fileData) return [];
     try {
-        const buffer = Buffer.from(fileData.content, 'base64');
-        const decompressed = await gunzip(buffer);
-        const posts = msgpack.decode(decompressed);
-        return posts.map((post: any) => ({ 
-            ...post,
-            commentCount: post.commentCount ?? (post.comments?.length || 0),
-            comments: post.comments || [],
-        }));
+        const { accounts } = await getAccounts();
+        const user = accounts.find(u => u.username === username);
+        if (!user) return null;
+
+        const userPosts = await getPosts();
+        return { ...createCleanUserProfile(user), posts: userPosts.filter(p => p.author.username === username) };
     } catch (error) {
-        console.error(`Error decoding posts for category ${category}:`, error);
-        return [];
+        logError(error, `getUserByUsername - Username: ${username}`);
+        throw error;
     }
 }

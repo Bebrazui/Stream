@@ -1,7 +1,6 @@
 'use client';
 
-import { Feed } from '@/components/feed/feed';
-import { CreatePost } from '@/components/post/create-post';
+import { PostList } from '@/components/posts/post-list';
 import { useSession } from 'next-auth/react';
 
 export default function Home() {
@@ -9,8 +8,8 @@ export default function Home() {
 
   return (
     <div className="mx-auto flex flex-col items-center">
-      {session && <CreatePost />} 
-      <Feed />
+      {/* The CreatePost component should be on its own page, e.g., /compose */}
+      <PostList />
     </div>
   );
 }

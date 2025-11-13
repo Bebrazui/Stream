@@ -8,60 +8,65 @@ import Link from 'next/link';
 
 interface PostCommentsProps {
   post: Post;
-  addComment: (postId: string, text: string) => Promise<void>;
-  currentUser: User | null; // Can be null if the user is not logged in
+  onCommentSubmit: (commentText: string) => Promise<{ success: boolean } | null>;
+  currentUser: User | null; 
 }
 
-export function PostComments({ post, addComment, currentUser }: PostCommentsProps) {
+export function PostComments({ post, onCommentSubmit, currentUser }: PostCommentsProps) {
   const [newComment, setNewComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddComment = async () => {
     if (newComment.trim() && currentUser) {
-      await addComment(post.id, newComment);
-      setNewComment('');
+      setIsSubmitting(true);
+      const result = await onCommentSubmit(newComment);
+      if (result?.success) {
+        setNewComment('');
+      }
+      setIsSubmitting(false);
     }
   };
 
   const comments = Array.isArray(post.comments) ? post.comments : [];
 
   return (
-    <div className="space-y-4">
-      {/* Comments List */}
-      <div className="space-y-2">
-        {comments.slice(0, 3).map((comment) => (
-          <div key={comment.id} className="flex items-start space-x-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={comment.author.avatarUrl} alt={comment.author.name} />
-              <AvatarFallback>{comment.author.name[0]}</AvatarFallback>
-            </Avatar>
-            <div className="text-sm">
-              <span className="font-semibold">{comment.author.username}</span>{' '}
-              <span>{comment.text}</span>
+    <div className="w-full space-y-4 text-sm">
+      
+      {comments.length > 0 && (
+        <div className="space-y-3 pt-2">
+          {comments.slice(0, 3).map((comment) => (
+            <div key={comment.id} className="flex items-start space-x-2">
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={comment.author.avatarUrl} alt={comment.author.name} />
+                <AvatarFallback>{comment.author.name[0]}</AvatarFallback>
+              </Avatar>
+              <p className="flex-1 break-words">
+                <Link href={`/profile/${comment.author.username}`} className="font-semibold pr-2 hover:underline">
+                  {comment.author.username}
+                </Link>
+                {comment.text}
+              </p>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {post.commentCount > 3 && (
-        <Button variant="link" asChild>
-          <Link href={`/posts/${post.id}/comments`}>View all {post.commentCount} comments</Link>
+        <Button variant="link" asChild className="p-0 h-auto font-normal text-gray-500">
+          <Link href={`/posts/${post.id}`}>View all {post.commentCount} comments</Link>
         </Button>
       )}
 
-      {/* Add Comment Form - only shown if a user is logged in */}
       {currentUser && (
-        <div className="flex items-center space-x-2">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
-            <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
-          </Avatar>
+        <div className="flex items-center space-x-2 pt-2">
           <Input
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Add a comment..."
-            className="flex-1"
+            className="flex-1 h-8"
+            onKeyDown={(e) => e.key === 'Enter' && !isSubmitting && handleAddComment()}
           />
-          <Button onClick={handleAddComment} disabled={!newComment.trim()}>
+          <Button onClick={handleAddComment} disabled={!newComment.trim() || isSubmitting} size="sm">
             Post
           </Button>
         </div>

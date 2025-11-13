@@ -67,6 +67,7 @@ export async function createSession(user: User) {
         secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 24 * 7, // One week
         path: '/',
+        sameSite: 'strict',
     });
 }
 
@@ -83,16 +84,18 @@ export async function getSessionUser(): Promise<User | null> {
         const validated = sessionSchema.safeParse(payload);
         if (!validated.success) {
              console.error("Session validation failed:", validated.error);
+             await deleteSession();
              return null;
         }
 
         return validated.data.user;
     } catch (error) {
-        console.error("Failed to decrypt or parse session:", error);
+        console.error("Failed to decrypt or parse session, deleting invalid cookie:", error);
+        await deleteSession();
         return null;
     }
 }
 
 export async function deleteSession() {
-    cookies().delete('session');
+    cookies().delete('session', { path: '/', sameSite: 'strict' });
 }

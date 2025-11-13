@@ -84,7 +84,7 @@ export function UserProfileClient({ user, posts }: UserProfileClientProps) {
         {posts.length > 0 ? (
           <div className="mx-auto grid max-w-2xl grid-cols-1 gap-6">
             {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+              <PostCard key={post.id} post={post} currentUser={currentUser} />
             ))}
           </div>
         ) : (

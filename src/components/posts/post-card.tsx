@@ -21,7 +21,7 @@ interface PostCardProps {
 export function PostCard({ post, currentUser }: PostCardProps) {
   const [isPending, startTransition] = React.useTransition();
   const [likes, setLikes] = React.useState(post.likes);
-  const [isLiked, setIsLiked] = React.useState(currentUser ? post.likedBy?.includes(currentUser.id) : false);
+  const [isLiked, setIsLiked] = React.useState(!!currentUser && !!post.likedBy?.includes(currentUser.id));
   const [shares, setShares] = React.useState(post.shares);
   const { toast } = useToast();
   const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });

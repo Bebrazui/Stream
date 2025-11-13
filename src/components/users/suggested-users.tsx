@@ -28,20 +28,32 @@ export function SuggestedUsers() {
 
     useEffect(() => {
         const fetchUsers = async () => {
-            try {
-                setLoading(true);
-                const suggestedUsers = await getSuggestedUsers(currentUser?.username);
-                setUsers(suggestedUsers);
-            } catch (err) {
-                setError('Failed to fetch suggestions. Please try again later.');
-                console.error(err);
-            } finally {
+            // Only fetch suggestions if a user is logged in.
+            if (currentUser) {
+                try {
+                    setLoading(true);
+                    const suggestedUsers = await getSuggestedUsers(currentUser.username);
+                    setUsers(suggestedUsers);
+                } catch (err) {
+                    setError('Failed to fetch suggestions. Please try again later.');
+                    console.error(err);
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                // No user logged in, so no suggestions.
+                setUsers([]);
                 setLoading(false);
             }
         };
 
         fetchUsers();
     }, [currentUser]); // Re-fetch when the current user changes
+
+    // Do not render the component if no user is logged in
+    if (!currentUser) {
+        return null;
+    }
 
     if (loading) {
         return (
