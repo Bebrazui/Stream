@@ -1,12 +1,15 @@
-import type {Config} from 'tailwindcss';
 
-export default {
-  darkMode: ['class'],
+import type { Config } from "tailwindcss";
+
+const config = {
+  darkMode: ["class"],
   content: [
-    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
   ],
+  prefix: "",
   theme: {
     container: {
       center: true,
@@ -16,12 +19,12 @@ export default {
       },
     },
     extend: {
-      fontFamily: {
-        body: ['PT Sans', 'sans-serif'],
-        headline: ['PT Sans', 'sans-serif'],
-        code: ['monospace'],
-      },
       colors: {
+        // Наша новая палитра
+        'neon-lilac': '#C8B6E2',
+        'neon-sky-blue': '#A3D5FF',
+        'neon-soft-pink': '#FBC7D4',
+        'silver-glow': '#F0F8FF',
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -55,13 +58,6 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        chart: {
-          '1': 'hsl(var(--chart-1))',
-          '2': 'hsl(var(--chart-2))',
-          '3': 'hsl(var(--chart-3))',
-          '4': 'hsl(var(--chart-4))',
-          '5': 'hsl(var(--chart-5))',
-        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -77,17 +73,19 @@ export default {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "caret-blink": {
-          "0%,70%,100%": { opacity: "1" },
-          "20%,50%": { opacity: "0" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "caret-blink": "caret-blink 1.25s ease-out infinite",
       },
+      // Вот она, магия "жидкого стекла"!
+      boxShadow: {
+        'glass-inset': 'inset 0 2px 4px 0 rgba(255, 255, 255, 0.5)',
+        'glass-reflex': '0 8px 32px 0 rgba(31, 38, 135, 0.2)',
+      }
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [require("tailwindcss-animate")],
 } satisfies Config;
+
+export default config;

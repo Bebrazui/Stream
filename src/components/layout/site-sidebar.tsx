@@ -2,25 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  Sidebar,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarFooter,
-} from '@/components/ui/sidebar';
-import {
-  Home,
-  Search,
-  PlusSquare,
-  Waves,
-} from 'lucide-react';
+import { Home, Search, PlusSquare, Waves } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/auth-context';
 import { useInteraction } from '@/context/interaction-context';
-import { Button } from '@/components/ui/button';
-
+import { cn } from '@/lib/utils';
 
 const menuItems = [
   { href: '/home', label: 'Home', icon: Home, requiresAuth: false },
@@ -28,57 +14,70 @@ const menuItems = [
   { href: '/compose', label: 'Compose Post', icon: PlusSquare, requiresAuth: true },
 ];
 
+// A sidebar that blends into the dark parallax background
 export function SiteSidebar() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { requireAuth } = useInteraction();
 
   const handleMenuClick = (item: typeof menuItems[0], e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (item.requiresAuth && !requireAuth()) {
+    if (item.requiresAuth && !user) {
       e.preventDefault();
+      requireAuth();
     }
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r">
-      <SidebarHeader className="hidden items-center gap-2 md:flex">
-        <Waves className="h-6 w-6 text-accent" />
-        <span className="font-headline text-lg font-bold">Stream</span>
-      </SidebarHeader>
+    <aside className="h-full w-full flex flex-col p-4 text-white/90">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-2 py-4">
+        <Waves className="h-7 w-7 text-sky-400" />
+        <span className="text-xl font-bold">Stream</span>
+      </div>
 
-      <SidebarMenu className="flex-1">
-        {menuItems.map((item) => (
-          <SidebarMenuItem key={item.href}>
-            <Link href={item.href} onClick={(e) => handleMenuClick(item, e)}>
-              <SidebarMenuButton
-                isActive={pathname === item.href}
-                tooltip={item.label}
-              >
-                <item.icon />
-                <span>{item.label}</span>
-              </SidebarMenuButton>
+      {/* Navigation Menu */}
+      <nav className="flex-1 space-y-2 py-4">
+        {menuItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link 
+              key={item.href} 
+              href={item.href} 
+              onClick={(e) => handleMenuClick(item, e)}
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-4 py-3 text-lg font-medium transition-colors',
+                'text-white/80 hover:bg-white/10 hover:text-white',
+                isActive && 'bg-white/20 text-white'
+              )}
+            >
+              <item.icon className="h-6 w-6" />
+              <span>{item.label}</span>
             </Link>
-          </SidebarMenuItem>
-        ))}
-      </SidebarMenu>
+          );
+        })}
+      </nav>
 
-      <SidebarFooter className="p-2">
+      {/* Footer - User Profile or Login Button */}
+      <div className="mt-auto">
         {user ? (
-             <Link href={`/profile/${user.username}`}>
-                <SidebarMenuButton tooltip="Profile">
-                    <Avatar className="h-7 w-7">
+            <Link href={`/profile/${user.username}`}>
+                <div className="flex items-center gap-3 rounded-lg px-4 py-3 text-lg font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors">
+                    <Avatar className="h-8 w-8 border border-white/30">
                         <AvatarImage src={user.avatarUrl ?? ''} alt={user.username} />
-                        <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarFallback className="bg-black/20">{user.username.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    <span>Profile</span>
-                </SidebarMenuButton>
+                    <span className="font-semibold">Profile</span>
+                </div>
             </Link>
         ) : (
-          <div className="flex flex-col items-stretch px-2">
-            <Button onClick={() => requireAuth()}>Login</Button>
-          </div>
+          <button
+            onClick={() => requireAuth()}
+            className="w-full rounded-full border border-white/20 bg-transparent py-3 text-lg font-semibold text-white/90 transition-all hover:bg-white/10"
+          >
+            Login
+          </button>
         )}
-      </SidebarFooter>
-    </Sidebar>
+      </div>
+    </aside>
   );
 }

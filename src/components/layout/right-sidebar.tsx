@@ -1,9 +1,8 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { SuggestedUsers } from '@/components/users/suggested-users';
+import { Button } from "@/components/ui/button";
 
 const categories = [
     { name: "Programming", href: "/search?q=programming" },
@@ -12,31 +11,34 @@ const categories = [
     { name: "Other", href: "/search?q=other" },
 ];
 
+// A sidebar that blends into the dark parallax background
 export function RightSidebar() {
     return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Categories</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col space-y-2">
-                        {categories.map((category) => (
-                            <Button key={category.name} variant="ghost" className="justify-start" asChild>
-                                <Link href={category.href}>{category.name}</Link>
-                            </Button>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Who to follow</CardTitle>
-                </CardHeader>
-                <CardContent>
+        <div className="space-y-8 p-4 text-white/90">
+            {/* Categories Section */}
+            <div className="space-y-4">
+                <h3 className="px-4 text-lg font-semibold tracking-tight">Categories</h3>
+                <div className="flex flex-col space-y-1">
+                    {categories.map((category) => (
+                        <Button 
+                            key={category.name} 
+                            variant="ghost" 
+                            className="justify-start px-4 py-2 text-base text-white/80 hover:bg-white/10 hover:text-white"
+                            asChild
+                        >
+                            <Link href={category.href}>{category.name}</Link>
+                        </Button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Suggested Users Section */}
+            <div className="space-y-4">
+                <h3 className="px-4 text-lg font-semibold tracking-tight">Who to follow</h3>
+                <div className="px-4">
                     <SuggestedUsers />
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     )
 }

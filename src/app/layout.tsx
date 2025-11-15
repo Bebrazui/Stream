@@ -1,6 +1,8 @@
+
 import type { Metadata } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-context';
+import { ParallaxBackground } from '@/components/ui/parallax-background';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -25,7 +27,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          {children}
+          <ParallaxBackground />
+          <main className="relative z-10">
+            {children}
+          </main>
           <Toaster />
         </AuthProvider>
       </body>

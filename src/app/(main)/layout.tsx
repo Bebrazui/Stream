@@ -4,8 +4,6 @@ import { MobileBottomBar } from '@/components/layout/mobile-bottom-bar';
 import { RightSidebar } from '@/components/layout/right-sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AuthModalController } from '@/components/auth/auth-modal-controller';
-import { BackgroundIcons } from '@/components/layout/background-icons';
-import { MainContentWrapper } from '@/components/layout/main-content-wrapper';
 
 export default function MainLayout({
   children,
@@ -15,32 +13,29 @@ export default function MainLayout({
   return (
     <SidebarProvider>
       <AuthModalController>
-        <div className="flex flex-col h-screen">
-          <BackgroundIcons />
-          <div className="bg-background">
+        <div className="w-full max-w-7xl mx-auto flex">
+          {/* Left Sidebar - sticky */}
+          <aside className="hidden md:block w-[280px] h-screen sticky top-0 py-4 pr-4">
+             <SiteSidebar />
+          </aside>
+
+          {/* Main Content with Header */}
+          <div className="flex-1 border-x border-white/20">
             <SiteHeader />
-          </div>
-          <div className="flex-1 flex overflow-y-hidden">
-            
-            <aside className="hidden md:block w-[280px] overflow-y-auto py-4 pl-6 no-scrollbar bg-background">
-               <SiteSidebar />
-            </aside>
-
-            <main className="flex-1 h-full overflow-y-auto">
-              <MainContentWrapper>
-                {children}
-              </MainContentWrapper>
+            <main className="h-full">
+              {children}
             </main>
-
-            <aside className="hidden lg:block w-[350px] overflow-y-auto py-4 pr-6 no-scrollbar bg-background">
-              <RightSidebar />
-            </aside>
-
           </div>
-          <div className="bg-background">
-            <MobileBottomBar />
-          </div>
+
+          {/* Right Sidebar - sticky */}
+          <aside className="hidden lg:block w-[350px] h-screen sticky top-0 py-4 pl-4">
+            <RightSidebar />
+          </aside>
         </div>
+        
+        {/* Mobile bottom bar is outside the main flex container */}
+        <MobileBottomBar />
+
       </AuthModalController>
     </SidebarProvider>
   );
