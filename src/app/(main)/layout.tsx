@@ -1,4 +1,3 @@
-import { SiteHeader } from '@/components/layout/site-header';
 import { SiteSidebar } from '@/components/layout/site-sidebar';
 import { MobileBottomBar } from '@/components/layout/mobile-bottom-bar';
 import { RightSidebar } from '@/components/layout/right-sidebar';
@@ -19,9 +18,8 @@ export default function MainLayout({
              <SiteSidebar />
           </aside>
 
-          {/* Main Content with Header */}
+          {/* Main Content */}
           <div className="flex-1 border-x border-white/20">
-            <SiteHeader />
             <main className="h-full">
               {children}
             </main>

@@ -3,7 +3,8 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteSidebar } from "@/components/layout/site-sidebar";
 import { getPosts } from "@/lib/actions";
 import { PostList } from "@/components/posts/post-list";
-import { SuggestedUsers } from "@/components/users/suggested-users";
+import { RightSidebar } from "@/components/layout/right-sidebar";
+
 
 // Эта функция теперь выполняется на сервере для получения данных
 export default async function Home() {
@@ -11,21 +12,16 @@ export default async function Home() {
   const posts = await getPosts();
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-background">
-        <SiteHeader />
-        <main className="flex-1">
-            <div className="container mx-auto flex flex-row py-8">
-                <SiteSidebar className="w-1/4" />
-                <div className="w-1/2 px-4">
-                    <h1 className="text-2xl font-bold mb-4">Feed</h1>
-                    {/* 2. Передаем данные в клиентский компонент для отрисовки */}
-                    <PostList posts={posts} />
-                </div>
-                <aside className="w-1/4 pl-8">
-                    <SuggestedUsers />
-                </aside>
-            </div>
-        </main>
-    </div>
+    <div className="grid grid-cols-12 min-h-screen">
+      <div className="col-span-2 border-r border-white/10">
+          <SiteSidebar />
+      </div>
+      <main className="col-span-7 py-8">
+          <PostList posts={posts} />
+      </main>
+      <aside className="col-span-3 border-l border-white/10">
+          <RightSidebar />
+      </aside>
+  </div>
   );
 }
