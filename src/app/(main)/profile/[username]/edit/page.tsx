@@ -2,15 +2,15 @@ import { EditProfileForm } from '@/components/profile/edit-profile-form';
 import { getUsers, updateProfile } from '@/lib/actions';
 import { notFound } from 'next/navigation';
 
-// Define the prop types for the page
-export type EditProfilePageProps = {
+// Define the prop types locally to avoid potential conflicts with Next.js type inference.
+type Props = {
   params: {
     username: string;
   };
 };
 
 // This is a server component that fetches the user's current data
-export default async function EditProfilePage({ params }: EditProfilePageProps) {
+export default async function EditProfilePage({ params }: Props) {
   // For now, we hardcode this to only allow editing the 'currentuser' profile
   if (params.username !== 'currentuser') {
     notFound();
