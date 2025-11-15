@@ -99,7 +99,7 @@ export function PostCard({ post, currentUser }: PostCardProps) {
   };
   
   return (
-    <Card className="w-full border rounded-lg shadow-md">
+    <Card className="w-full border border-gray-200/80 rounded-lg shadow-xl bg-white/30 backdrop-blur-lg">
       <CardHeader className="flex flex-row items-center gap-4 p-4">
         <Link href={`/profile/${post.author.username}`}>
             <Avatar>
@@ -122,7 +122,7 @@ export function PostCard({ post, currentUser }: PostCardProps) {
             </div>
         )}
       </CardContent>
-      <CardFooter className="flex justify-between items-center p-2 border-t">
+      <CardFooter className="flex justify-between items-center p-2 border-t border-gray-200/80">
         <PostComments post={post} currentUser={currentUser} onCommentSubmit={handleCommentSubmit} />
         
         <div className="flex items-center gap-1">

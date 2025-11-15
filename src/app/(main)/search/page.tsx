@@ -14,10 +14,5 @@ export default async function SearchPage() {
   });
   const allUsers = Array.from(usersMap.values());
 
-  return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 font-headline text-3xl font-bold">Search</h1>
-      <SearchClient allUsers={allUsers} allPosts={allPosts} />
-    </div>
-  );
+  return <SearchClient allUsers={allUsers} allPosts={allPosts} />;
 }

@@ -4,6 +4,8 @@ import { MobileBottomBar } from '@/components/layout/mobile-bottom-bar';
 import { RightSidebar } from '@/components/layout/right-sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AuthModalController } from '@/components/auth/auth-modal-controller';
+import { BackgroundIcons } from '@/components/layout/background-icons';
+import { MainContentWrapper } from '@/components/layout/main-content-wrapper';
 
 export default function MainLayout({
   children,
@@ -13,26 +15,31 @@ export default function MainLayout({
   return (
     <SidebarProvider>
       <AuthModalController>
-        <div className="flex flex-col h-screen bg-background">
-          <SiteHeader />
+        <div className="flex flex-col h-screen">
+          <BackgroundIcons />
+          <div className="bg-background">
+            <SiteHeader />
+          </div>
           <div className="flex-1 flex overflow-y-hidden">
             
-            <aside className="hidden md:block w-[280px] overflow-y-auto py-4 pl-6 no-scrollbar">
+            <aside className="hidden md:block w-[280px] overflow-y-auto py-4 pl-6 no-scrollbar bg-background">
                <SiteSidebar />
             </aside>
 
             <main className="flex-1 h-full overflow-y-auto">
-              <div className="container mx-auto h-full">
+              <MainContentWrapper>
                 {children}
-              </div>
+              </MainContentWrapper>
             </main>
 
-            <aside className="hidden lg:block w-[350px] overflow-y-auto py-4 pr-6 no-scrollbar">
+            <aside className="hidden lg:block w-[350px] overflow-y-auto py-4 pr-6 no-scrollbar bg-background">
               <RightSidebar />
             </aside>
 
           </div>
-          <MobileBottomBar />
+          <div className="bg-background">
+            <MobileBottomBar />
+          </div>
         </div>
       </AuthModalController>
     </SidebarProvider>
