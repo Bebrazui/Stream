@@ -52,7 +52,7 @@ export function PostCard({ post }: { post: Post }) {
       variants={cardVariants}
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, amount: 0.3 }}
+      viewport={{ amount: 0.3 }}
     >
       <LiquidGlass className="w-full max-w-2xl mx-auto p-5">
         <div className="flex items-start gap-4">

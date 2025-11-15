@@ -26,7 +26,7 @@ export default function MainLayout({
           </div>
 
           {/* Right Sidebar - sticky */}
-          <aside className="hidden lg:block w-[350px] h-screen sticky top-0 py-4 pl-4">
+          <aside className="hidden lg:block w-[350px] h-screen sticky top-0 py-4 pl-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <RightSidebar />
           </aside>
         </div>
