@@ -46,7 +46,7 @@ export function PostCard({ post, currentUser }: { post: Post; currentUser: User 
     }
     const newComment: Comment = {
       id: `comment-${Date.now()}`,
-      content: values.text,
+      text: values.text,
       createdAt: new Date().toISOString(),
       author: currentUser,
     };
@@ -59,7 +59,7 @@ export function PostCard({ post, currentUser }: { post: Post; currentUser: User 
       opacity: 1, 
       filter: 'blur(0px)', 
       y: 0,
-      transition: { duration: 0.5, ease: [0.25, 1, 0.5, 1] } 
+      transition: { duration: 0.5, ease: "easeOut" } 
     },
   };
 

@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { updateProfile } from '@/lib/actions';
 import { User } from '@/types';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
@@ -22,9 +21,10 @@ const profileSchema = z.object({
 
 type EditProfileFormProps = {
   user: User;
+  updateUserAction: (formData: FormData, user: User) => Promise<{ success: boolean, user: User } | { error: string }>;
 };
 
-export function EditProfileForm({ user }: EditProfileFormProps) {
+export function EditProfileForm({ user, updateUserAction }: EditProfileFormProps) {
   const { toast } = useToast();
   const router = useRouter();
   const { setUser } = useAuth(); // Get setUser to update context
@@ -48,7 +48,7 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
     formData.append('avatarUrl', values.avatarUrl || '');
 
     try {
-      const result = await updateProfile(formData, user);
+      const result = await updateUserAction(formData, user);
       if (result.success && result.user) {
         toast({ title: 'Profile Updated', description: 'Your profile has been successfully updated.' });
         setUser(result.user); // Update the user in the context
