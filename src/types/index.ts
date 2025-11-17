@@ -1,4 +1,6 @@
 export type PostCategory = 'programming' | 'nature' | 'games' | 'other';
+export type ProfileTheme = 'default' | 'dark' | 'ocean' | 'sunrise' | 'premium-galaxy';
+export type AvatarFrame = 'circle' | 'none' | 'gold-border' | 'neon-glow' | 'vintage';
 
 export type User = {
   id: string;
@@ -6,9 +8,9 @@ export type User = {
   username: string;
   avatarUrl: string;
   bannerUrl?: string;
-  bio?: string;
-  profileTheme?: string;
-  avatarFrame?: string;
+  bio?: string; 
+  profileTheme?: ProfileTheme;
+  avatarFrame?: AvatarFrame;
 };
 
 export type Comment = {
