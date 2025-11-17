@@ -5,6 +5,7 @@ export type User = {
   name: string;
   username: string;
   avatarUrl: string;
+  bannerUrl?: string;
   bio?: string; 
 };
 
