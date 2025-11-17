@@ -1,6 +1,6 @@
 'use client';
 
-import type { Post, Comment } from '@/types';
+import type { Post, Comment, User } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import * as React from 'react';
@@ -14,13 +14,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { CommentForm } from '@/components/comments/comment-form';
 import { CommentList } from '@/components/comments/comment-list';
 
-// Mock current user for creating new comments
-const currentUser = {
-  name: 'Alice',
-  username: 'alice',
-  avatarUrl: 'https://i.pravatar.cc/150?u=alice', // Placeholder avatar
-};
-
 const ActionButton = ({ children, onClick, active }: { children: React.ReactNode, onClick?: () => void, active?: boolean }) => (
   <Button 
     variant="ghost" 
@@ -31,7 +24,7 @@ const ActionButton = ({ children, onClick, active }: { children: React.ReactNode
   </Button>
 );
 
-export function PostCard({ post }: { post: Post }) {
+export function PostCard({ post, currentUser }: { post: Post; currentUser: User | null }) {
   const { toast } = useToast();
   const [likes, setLikes] = React.useState(post.likes || 0);
   const [isLiked, setIsLiked] = React.useState(false);
@@ -47,6 +40,10 @@ export function PostCard({ post }: { post: Post }) {
   };
 
   const handleAddComment = (values: { text: string }) => {
+    if (!currentUser) {
+        toast({ title: 'Error', description: 'You must be logged in to comment.', variant: 'destructive' });
+        return;
+    }
     const newComment: Comment = {
       id: `comment-${Date.now()}`,
       content: values.text,
