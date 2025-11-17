@@ -4,18 +4,12 @@ import { notFound } from 'next/navigation';
 
 // This is a server component that fetches the user's current data
 export default async function EditProfilePage({ params }: { params: { username: string } }) {
-  // For now, we hardcode this to only allow editing the 'currentuser' profile
-  if (params.username !== 'currentuser') {
-    notFound();
-  }
 
   const users = await getUsers();
-  const currentUser = users.find(u => u.username === 'currentuser');
+  const user = users.find(u => u.username === params.username);
 
-  const user = {
-    name: currentUser?.name || 'New User',
-    bio: currentUser?.bio || '',
-    avatarUrl: currentUser?.avatarUrl || '',
+  if (!user) {
+      notFound();
   }
 
   // The main component render
