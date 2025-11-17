@@ -6,7 +6,9 @@ export type User = {
   username: string;
   avatarUrl: string;
   bannerUrl?: string;
-  bio?: string; 
+  bio?: string;
+  profileTheme?: string;
+  avatarFrame?: string;
 };
 
 export type Comment = {

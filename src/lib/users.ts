@@ -11,7 +11,9 @@ export const USERS: User[] = [
         password: 'password123', // Пароли должны быть хешированы в продакшене!
         avatarUrl: '/avatars/alice.png',
         bannerUrl: '/banners/banner-1.jpg',
-        bio: 'Full-stack developer with a passion for open-source and coffee. ☕'
+        bio: 'Full-stack developer with a passion for open-source and coffee. ☕',
+        profileTheme: 'default',
+        avatarFrame: 'none',
     },
     {
         id: '2',
@@ -20,7 +22,9 @@ export const USERS: User[] = [
         password: 'password123',
         avatarUrl: '/avatars/bob.png',
         bannerUrl: '/banners/banner-2.jpg',
-        bio: 'Photographer and nature enthusiast. Capturing the beauty of the world, one photo at a time. 🌲📸'
+        bio: 'Photographer and nature enthusiast. Capturing the beauty of the world, one photo at a time. 🌲📸',
+        profileTheme: 'default',
+        avatarFrame: 'none',
     },
     {
         id: '3',
@@ -29,7 +33,9 @@ export const USERS: User[] = [
         password: 'password123',
         avatarUrl: '/avatars/charlie.png',
         bannerUrl: '/banners/banner-3.jpg',
-        bio: 'AI researcher exploring the frontiers of machine learning. Fascinated by LLMs and their potential.'
+        bio: 'AI researcher exploring the frontiers of machine learning. Fascinated by LLMs and their potential.',
+        profileTheme: 'default',
+        avatarFrame: 'none',
     },
     {
         id: '4',
@@ -38,6 +44,8 @@ export const USERS: User[] = [
         password: 'password123',
         avatarUrl: '/avatars/diana.png',
         bannerUrl: '/banners/banner-4.jpg',
-        bio: 'Art historian & curator. Lover of ancient artifacts and mysterious stories.'
+        bio: 'Art historian & curator. Lover of ancient artifacts and mysterious stories.',
+        profileTheme: 'default',
+        avatarFrame: 'none',
     },
 ];
