@@ -1,27 +1,44 @@
+'use client';
 
-import { SiteHeader } from "@/components/layout/site-header";
 import { SiteSidebar } from "@/components/layout/site-sidebar";
-import { getPosts } from "@/lib/actions";
 import { PostList } from "@/components/posts/post-list";
 import { RightSidebar } from "@/components/layout/right-sidebar";
+import { useAuth } from "@/context/auth-context";
+import { useEffect, useState } from "react";
+import type { Post } from "@/types";
+import { getPosts } from "@/lib/actions";
 
+export default function Home() {
+  const { user: currentUser } = useAuth();
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
 
-// Эта функция теперь выполняется на сервере для получения данных
-export default async function Home() {
-  // 1. Получаем данные постов на сервере
-  const posts = await getPosts();
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const fetchedPosts = await getPosts();
+        setPosts(fetchedPosts);
+      } catch (error) {
+        console.error('Failed to fetch posts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPosts();
+  }, []);
 
   return (
     <div className="grid grid-cols-12 min-h-screen">
       <div className="col-span-2 border-r border-white/10">
-          <SiteSidebar />
+        <SiteSidebar />
       </div>
       <main className="col-span-7 py-8">
-          <PostList posts={posts} />
+        {/* Теперь мы передаем currentUser в PostList */}
+        <PostList posts={posts} currentUser={currentUser} isLoading={loading} />
       </main>
       <aside className="col-span-3 border-l border-white/10">
-          <RightSidebar />
+        <RightSidebar />
       </aside>
-  </div>
+    </div>
   );
 }
