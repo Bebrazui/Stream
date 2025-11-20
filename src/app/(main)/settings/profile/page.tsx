@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
 import { Separator } from "@/components/ui/separator"
 import { updateProfile } from "@/lib/actions"
-import { useUser } from "@/context/auth-context"
+import { useAuth } from "@/context/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -36,7 +36,7 @@ const profileFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileFormSchema>
 
 export default function ProfileForm() {
-  const { user } = useUser()
+  const { user } = useAuth()
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
