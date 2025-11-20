@@ -1,41 +1,55 @@
-
 'use client';
 
 import type { Comment } from '@/types';
-import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CommentListProps {
   comments: Comment[];
+  isLoading: boolean;
 }
 
-export function CommentList({ comments }: CommentListProps) {
-  if (comments.length === 0) {
-    return null; // Don't render anything if there are no comments
-  }
+export function CommentList({ comments, isLoading }: CommentListProps) {
 
-  return (
-    <div className="pt-4 border-t border-white/20">
-      {comments.map((comment) => (
-        <div key={comment.id} className="flex items-start gap-4 p-4">
-           <Link href={`/profile/${comment.author.username}`}>
-             <Avatar className="w-10 h-10 border-2 border-white/30">
-                <AvatarImage src={comment.author.avatarUrl} alt={`${comment.author.name}\'s avatar`} />
-                <AvatarFallback>{comment.author.name.charAt(0)}</AvatarFallback>
-             </Avatar>
-           </Link>
-           <div className="flex-1">
-             <div className="flex items-baseline gap-2">
-               <Link href={`/profile/${comment.author.username}`} className="font-bold text-white/90 hover:underline">
-                 {comment.author.name}
-               </Link>
-               <span className="text-sm text-white/60">@{comment.author.username} Â· {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}</span>
-             </div>
-             <p className="mt-1 text-white/80">{comment.content}</p>
-           </div>
+  if (isLoading) {
+    return (
+      <div className="space-y-4 mt-4">
+        <div className="flex items-start space-x-4">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[200px]" />
+            </div>
         </div>
-      ))}
+        <div className="flex items-start space-x-4">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[200px]" />
+            </div>
+        </div>
+      </div>
+    )
+  }
+  
+  return (
+    <div className="space-y-6 mt-6">
+       {comments.map((comment) => (
+         <div key={comment.id} className="flex items-start space-x-4">
+            <Avatar>
+              <AvatarImage src={comment.author.avatarUrl} alt={comment.author.name} />
+              <AvatarFallback>{comment.author.name[0]}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <div className="flex items-baseline space-x-2">
+                <span className="font-bold text-white">{comment.author.name}</span>
+                <span className="text-sm text-white/60">@{comment.author.username} Â· {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}</span>
+              </div>
+              <p className="mt-1 text-white/80">{comment.text}</p>
+            </div>
+         </div>
+       ))}
     </div>
   );
 }
