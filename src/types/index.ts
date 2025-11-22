@@ -20,6 +20,16 @@ export type Comment = {
     createdAt: string;
 }
 
+export type Community = {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    creator: User;
+    members: number;
+    createdAt: string;
+}
+
 export type Post = {
   id: string;
   content: string;
@@ -32,4 +42,6 @@ export type Post = {
   comments: Comment[];
   commentCount: number;
   shares: number;
+  category?: PostCategory;
+  community?: Community; // Пост может принадлежать сообществу
 };
