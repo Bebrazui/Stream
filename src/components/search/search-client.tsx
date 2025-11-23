@@ -48,8 +48,8 @@ export default function SearchClient({ initialUsers = [], initialPosts = [] }: S
                     mockSearch(value, 'users'),
                     mockSearch(value, 'posts'),
                 ]);
-                setUsers(userResults);
-                setPosts(postResults);
+                setUsers(userResults as User[]);
+                setPosts(postResults as Post[]);
             });
         }
     };
@@ -97,4 +97,3 @@ export default function SearchClient({ initialUsers = [], initialPosts = [] }: S
         </div>
     );
 }
-

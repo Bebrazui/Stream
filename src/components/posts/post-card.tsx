@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -8,7 +7,7 @@ import { Post, User } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import PostActions from './post-actions';
-import PostImage from './post-image';
+import { PostImage } from './post-image';
 import CommentList from './comment-list';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/context/auth-context';

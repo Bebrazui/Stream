@@ -22,7 +22,7 @@ const profileFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 export default function EditProfileForm({ closeDialog }: { closeDialog: () => void }) {
-  const { user, setUser } = useAuth(); // Assume setUser is now available
+  const { user, updateUser } = useAuth(); // Assume setUser is now available
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,7 +47,7 @@ export default function EditProfileForm({ closeDialog }: { closeDialog: () => vo
     const result = await updateProfile(formData);
 
     if ('success' in result && result.success && result.user) {
-      if(setUser) setUser(result.user); // Update user in context
+      if(updateUser) updateUser(result.user); // Update user in context
       toast({ title: "Success", description: "Profile updated successfully!" });
       closeDialog();
     } else if ('error' in result) {

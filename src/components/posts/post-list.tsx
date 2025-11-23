@@ -1,16 +1,15 @@
 'use client';
 
 import type { Post, User } from '@/types';
-import { PostCard } from './post-card';
+import PostCard from './post-card';
 import { Skeleton } from '../ui/skeleton';
 
 interface PostListProps {
   posts: Post[];
-  currentUser: User | null;
   isLoading: boolean;
 }
 
-export function PostList({ posts, currentUser, isLoading }: PostListProps) {
+export function PostList({ posts, isLoading }: PostListProps) {
 
   if (isLoading) {
     return (
@@ -34,7 +33,7 @@ export function PostList({ posts, currentUser, isLoading }: PostListProps) {
   return (
     <div className="space-y-4">
       {posts.map((post) => (
-        <PostCard key={post.id} post={post} currentUser={currentUser} />
+        <PostCard key={post.id} post={post} />
       ))}
     </div>
   );

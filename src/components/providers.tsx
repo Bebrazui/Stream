@@ -4,7 +4,7 @@
 import { AuthProvider } from "@/context/auth-context";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster as DefaultToaster } from "@/components/ui/toaster"; 
-import { Toaster as SonnerToaster } from "@/components/ui/sonner";
+import { Toaster as SonnerToaster } from "sonner";
 import { ModalProvider, Modal } from "@/context/modal-context";
 import { useState } from "react";
 

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -61,9 +60,9 @@ export default function PostActions({
 
     startTransition(async () => {
         const result = await updatePostShares(postId);
-        if (result.error) {
+        if (!result.success) {
             setShares(shares); // Revert on error
-            toast({ title: "Error", description: result.error, variant: "destructive" });
+            toast({ title: "Error", description: "There was an error sharing the post.", variant: "destructive" });
         } else {
             setShares(result.shares || newSharesCount);
         }
@@ -96,4 +95,3 @@ export default function PostActions({
     </div>
   );
 }
-

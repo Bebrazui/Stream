@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   login: (userData: User) => void;
   logout: () => void;
+  updateUser: (userData: User) => void; 
   isLoading: boolean;
 }
 
@@ -59,9 +60,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Optionally, redirect or refresh the page
     window.location.href = '/home'; // Redirect to a public page after logout
   };
+  
+  const updateUser = (userData: User) => {
+    // This function can be expanded to also update the backend.
+    // For now, it just updates the local state and cache.
+    const updatedUser = { ...user, ...userData };
+    localStorage.setItem('user-session', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+    userCache = updatedUser;
+  };
+
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

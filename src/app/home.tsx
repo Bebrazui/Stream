@@ -33,8 +33,7 @@ export default function Home() {
         <SiteSidebar />
       </div>
       <main className="col-span-7 py-8">
-        {/* Теперь мы передаем currentUser в PostList */}
-        <PostList posts={posts} currentUser={currentUser} isLoading={loading} />
+        <PostList posts={posts} isLoading={loading} />
       </main>
       <aside className="col-span-3 border-l border-white/10">
         <RightSidebar />

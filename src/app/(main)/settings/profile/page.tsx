@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { toast } from "@/components/ui/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 import { Separator } from "@/components/ui/separator"
 import { updateProfile } from "@/lib/actions"
 import { useAuth } from "@/context/auth-context"
@@ -37,6 +37,7 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>
 
 export default function ProfileForm() {
   const { user } = useAuth()
+  const { toast } = useToast()
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),

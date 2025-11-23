@@ -23,7 +23,7 @@ export function SiteHeader() {
         {isLoading ? (
           <div className="h-9 w-24 rounded-full bg-white/10"></div>
         ) : user ? (
-          <UserNav user={user} />
+          <UserNav />
         ) : (
           <Button 
             variant="ghost"
