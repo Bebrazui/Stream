@@ -6,6 +6,7 @@ import { Home, Search, PlusSquare, User, LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { useInteraction } from '@/context/interaction-context';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 
 export function MobileBottomBar() {
   const pathname = usePathname();
@@ -16,7 +17,6 @@ export function MobileBottomBar() {
     { href: '/home', label: 'Home', icon: Home, requiresAuth: false },
     { href: '/search', label: 'Search', icon: Search, requiresAuth: false },
     { href: '/compose', label: 'Post', icon: PlusSquare, requiresAuth: true },
-    // The profile link is now dynamic
     user
       ? { href: `/profile/${user.username}`, label: 'Profile', icon: User, requiresAuth: true }
       : { href: '#', label: 'Login', icon: LogIn, requiresAuth: true, isLoginButton: true },
@@ -29,7 +29,10 @@ export function MobileBottomBar() {
   };
 
   return (
-    <nav className="fixed bottom-0 z-50 w-full border-t bg-background/95 backdrop-blur-sm md:hidden">
+    <LiquidGlass
+      as="nav"
+      className="fixed bottom-0 z-50 w-full border-t md:hidden"
+    >
       <div className="flex h-16 items-center justify-around">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
@@ -71,6 +74,6 @@ export function MobileBottomBar() {
           );
         })}
       </div>
-    </nav>
+    </LiquidGlass>
   );
 }

@@ -69,7 +69,7 @@ export function PostSwiper() {
                           slidesPerView={1}
                           mousewheel
                           keyboard={{ enabled: true }}
-                          className="w-full max-w-2xl h-full"
+                          className="w-full max-w-2xl h-full px-4"
                           nested // Важно для вложенных свайперов
                         >
                             {filteredPosts.length > 0 ? (
