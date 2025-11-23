@@ -1,80 +1,77 @@
 
 'use client';
 
-import { CheckCircle, Lock } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Palette, Sparkles, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/components/ui/use-toast';
+import { ProfileTheme } from '@/types';
 
-const THEMES = {
-  default: { bg: 'bg-card', text: 'text-foreground', accent: 'text-accent' },
-  dark: { bg: 'bg-gray-900', text: 'text-gray-100', accent: 'text-blue-400' },
-  ocean: { bg: 'bg-blue-100', text: 'text-blue-900', accent: 'text-blue-600' },
-  sunrise: { bg: 'bg-orange-100', text: 'text-orange-900', accent: 'text-red-500' },
-  'premium-galaxy': { bg: 'bg-indigo-900', text: 'text-purple-200', accent: 'text-pink-400' },
-} as const;
+const themes: { name: ProfileTheme; isPremium: boolean; color: string }[] = [
+  { name: 'default', isPremium: false, color: '#ffffff' },
+  { name: 'dark', isPremium: false, color: '#1a202c' },
+  { name: 'ocean', isPremium: false, color: '#4f9de9' },
+  { name: 'sunrise', isPremium: false, color: '#f6ad55' },
+  { name: 'premium-galaxy', isPremium: true, color: '#4a0e89' },
+];
 
-type ThemeName = keyof typeof THEMES;
-
-interface ThemeSelectorProps {
-  value: ThemeName;
-  onChange: (value: ThemeName) => void;
-}
-
-export function ThemeSelector({ value, onChange }: ThemeSelectorProps) {
+export default function ThemeSelector() {
   const { user } = useAuth();
   const { toast } = useToast();
+  // DUMMY STATE: In a real app, this would come from user.profileTheme
+  const [selectedTheme, setSelectedTheme] = useState<ProfileTheme>('default');
 
-  const handleThemeClick = (themeName: ThemeName) => {
-    if (themeName === 'premium-galaxy' && !user?.hasPremium) {
+  const handleSelectTheme = (theme: ProfileTheme, isPremium: boolean) => {
+    if (isPremium && !user?.hasPremium) {
       toast({
-        title: "Premium Theme Locked",
-        description: "This theme is only available for premium users.",
-        variant: "destructive",
+        title: 'Premium Feature',
+        description: 'Upgrade to premium to use this theme!',
+        variant: 'destructive',
       });
-    } else {
-      onChange(themeName);
+      return;
     }
+    setSelectedTheme(theme);
+    toast({ title: 'Theme Updated!', description: `Switched to ${theme} theme.` });
+    // In a real app, you would call a server action here to save the theme
+    // e.g., updateUserTheme(theme);
   };
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
-      {(Object.keys(THEMES) as ThemeName[]).map((themeName) => {
-        const theme = THEMES[themeName];
-        const isSelected = value === themeName;
-        const isPremium = themeName === 'premium-galaxy';
-        const isLocked = isPremium && !user?.hasPremium;
-
-        return (
-          <div
-            key={themeName}
-            onClick={() => handleThemeClick(themeName)}
-            className={cn(
-              'relative cursor-pointer rounded-lg border-2 p-4 transition-all',
-              isSelected ? 'border-primary scale-105' : 'border-muted hover:border-muted-foreground',
-              isLocked ? 'cursor-not-allowed opacity-50' : ''
-            )}
-          >
-            <div className={cn('h-16 w-full rounded-md', theme.bg)}>
-                <div className='p-2'>
-                    <p className={cn('text-sm font-bold', theme.text)}>{themeName}</p>
-                    <p className={cn('text-xs', theme.text)}>Some text</p>
-                    <p className={cn('text-xs font-bold', theme.accent)}>Accent</p>
-                </div>
-            </div>
-            {isSelected && (
-              <div className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                <CheckCircle className="h-4 w-4" />
+    <div className="p-6 bg-card border rounded-lg">
+      <h3 className="text-lg font-semibold mb-4 flex items-center"><Palette className="mr-2" /> Profile Theme</h3>
+      <p className="text-sm text-muted-foreground mb-6">
+        Customize your profile with a unique theme. Premium themes are available for subscribers.
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {themes.map((theme) => (
+          <div key={theme.name} className="relative">
+            <Button
+              variant="outline"
+              className={cn(
+                'w-full h-24 flex flex-col items-center justify-center transition-all',
+                selectedTheme === theme.name && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+              )}
+              onClick={() => handleSelectTheme(theme.name, theme.isPremium)}
+            >
+              <div className="w-10 h-10 rounded-full mb-2" style={{ backgroundColor: theme.color }} />
+              <span className="text-xs capitalize">{theme.name.replace('-', ' ')}</span>
+            </Button>
+            {selectedTheme === theme.name && (
+              <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
+                <Check size={14} />
               </div>
             )}
-            {isLocked && (
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <Lock className="h-8 w-8 text-foreground" />
+            {theme.isPremium && (
+              <div className="absolute bottom-2 right-2 text-yellow-500">
+                {user?.hasPremium ? <Sparkles size={16} /> : <Lock size={16} />}
               </div>
             )}
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
+

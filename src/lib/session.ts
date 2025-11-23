@@ -1,101 +1,91 @@
-'use server';
 
 import 'server-only';
 import { cookies } from 'next/headers';
-import { z } from 'zod';
+import { SignJWT, jwtVerify } from 'jose';
 import { User } from '@/types';
-import crypto from 'crypto';
-import { promisify } from 'util';
 
-const { CRYPTO_SECRET_KEY } = process.env;
+// --- Environment Variables ---
+const secretKey = process.env.SESSION_SECRET;
+const encodedKey = new TextEncoder().encode(secretKey);
+const expires = '7d'; // Session expiration time
 
-if (!CRYPTO_SECRET_KEY || CRYPTO_SECRET_KEY.length !== 64) {
-    throw new Error('CRYPTO_SECRET_KEY must be a 64-character hex string (32 bytes).');
+// --- Session Encryption ---
+export async function encrypt(payload: any) {
+  return new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(expires)
+    .sign(encodedKey);
 }
 
-const ENCRYPTION_KEY = Buffer.from(CRYPTO_SECRET_KEY, 'hex');
-const IV_LENGTH = 16;
-const AUTH_TAG_LENGTH = 16;
-
-const sessionSchema = z.object({
-    user: z.object({
-        id: z.string(),
-        username: z.string(),
-        name: z.string(),
-        avatarUrl: z.string().url(),
-    }),
-    createdAt: z.number(),
-});
-
-type SessionPayload = z.infer<typeof sessionSchema>;
-
-function encrypt(data: Buffer): string {
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv('aes-256-gcm', ENCRYPTION_KEY, iv);
-    const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
-    const authTag = cipher.getAuthTag();
-    return Buffer.concat([iv, authTag, encrypted]).toString('base64');
+// --- Session Decryption ---
+export async function decrypt(session: string | undefined = '') {
+  try {
+    const { payload } = await jwtVerify(session, encodedKey, {
+      algorithms: ['HS256'],
+    });
+    return payload;
+  } catch (error) {
+    console.log('Failed to verify session');
+    return null;
+  }
 }
 
-function decrypt(data: string): Buffer {
-    const buffer = Buffer.from(data, 'base64');
-    const iv = buffer.subarray(0, IV_LENGTH);
-    const authTag = buffer.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
-    const encrypted = buffer.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
-    const decipher = crypto.createDecipheriv('aes-256-gcm', ENCRYPTION_KEY, iv);
-    decipher.setAuthTag(authTag);
-    return Buffer.concat([decipher.update(encrypted), decipher.final()]);
-}
+// --- Session Management ---
 
-
+/**
+ * Creates a session for the given user and sets the cookie.
+ * This is a server-side action.
+ */
 export async function createSession(user: User) {
-    const payload: SessionPayload = {
-        user: {
-            id: user.id,
-            username: user.username,
-            name: user.name,
-            avatarUrl: user.avatarUrl,
-        },
-        createdAt: Date.now(),
-    };
-
-    const stringifiedPayload = JSON.stringify(payload);
-    const encryptedSession = encrypt(Buffer.from(stringifiedPayload));
-
-    cookies().set('session', encryptedSession, {
+    console.log("--- SESSION: Creating session for user:", user.username);
+    const sessionPayload = { user, expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) };
+    const session = await encrypt(sessionPayload);
+    
+    const cookieStore = cookies();
+    cookieStore.set('session', session, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 60 * 24 * 7, // One week
+        sameSite: 'lax',
         path: '/',
-        sameSite: 'strict',
+        expires: sessionPayload.expires,
     });
+    console.log("--- SESSION: Cookie set successfully.");
 }
 
+/**
+ * Retrieves the current user from the session cookie.
+ * Returns the user object or null if not authenticated.
+ * This is a server-side action.
+ */
 export async function getSessionUser(): Promise<User | null> {
-    const sessionCookie = cookies().get('session')?.value;
+    console.log("--- SESSION: Attempting to get session user.");
+    const cookieStore = cookies();
+    const sessionCookie = cookieStore.get('session')?.value;
+
     if (!sessionCookie) {
+        console.log("--- SESSION: No session cookie found.");
         return null;
     }
 
-    try {
-        const decrypted = decrypt(sessionCookie);
-        const payload = JSON.parse(decrypted.toString());
-        
-        const validated = sessionSchema.safeParse(payload);
-        if (!validated.success) {
-             console.error("Session validation failed:", validated.error);
-             await deleteSession();
-             return null;
-        }
+    const decrypted = await decrypt(sessionCookie);
 
-        return validated.data.user;
-    } catch (error) {
-        console.error("Failed to decrypt or parse session, deleting invalid cookie:", error);
-        await deleteSession();
-        return null;
+    if (decrypted && decrypted.user) {
+         console.log("--- SESSION: User found in session:", (decrypted.user as User).username);
+        return decrypted.user as User;
     }
+    
+    console.log("--- SESSION: Session found but no user data inside.");
+    return null;
 }
 
+/**
+ * Deletes the session cookie.
+ * This is a server-side action.
+ */
 export async function deleteSession() {
-    cookies().delete('session', { path: '/', sameSite: 'strict' });
+    console.log("--- SESSION: Deleting session cookie.");
+    const cookieStore = cookies();
+    cookieStore.delete('session');
+    console.log("--- SESSION: Cookie deleted.");
 }

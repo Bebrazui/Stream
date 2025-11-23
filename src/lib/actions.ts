@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { Post, User, Comment, UserCredentials, Community } from '@/types';
+import { Post, User, Comment, Community } from '@/types'; // Removed UserCredentials
 import { createSession, getSessionUser, deleteSession } from '@/lib/session';
 
 // --- Zod Schemas ---
@@ -99,7 +99,7 @@ export async function createCommunity(values: z.infer<typeof communitySchema>, c
         createdAt: new Date().toISOString(),
     };
 
-    revalidatePath('/'); // Revalidate home to show new community in lists
+    revalidatePath('/');
     return { success: true, community: newCommunity };
 }
 
@@ -112,8 +112,6 @@ export async function createPost(data: z.infer<typeof postSchema>): Promise<{ su
     revalidatePath('/');
     return { success: true };
 }
-
-// ... (rest of the file is the same)
 
 export async function addComment(postId: string, text: string) {
     console.log("--- MOCKED: addComment() ---");
@@ -147,20 +145,7 @@ export async function updateProfile(formData: FormData) {
 // --- Data Fetching ---
 export async function getPosts(): Promise<Post[]> {
     console.log("--- MOCKED: getPosts() ---");
-    const mockPosts: Post[] = [
-        {
-            id: 'post-mock-1',
-            content: 'Just finished setting up my new development environment with Next.js and TypeScript. It feels so fast and productive! #webdev #coding',
-            author: { id: 'user-mock-1', name: 'Alice', username: 'alice', avatarUrl: 'https://i.pravatar.cc/150?u=alice' },
-            createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
-            likes: 15,
-            likedBy: [],
-            comments: [],
-            commentCount: 0,
-            shares: 3,
-            category: 'programming'
-        },
-    ];
+    const mockPosts: Post[] = []; // Empty array for now
     return mockPosts;
 }
 

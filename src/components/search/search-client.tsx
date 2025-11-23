@@ -1,115 +1,100 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
-import type { User, Post } from '@/types';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { PostCard } from '@/components/posts/post-card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import Link from 'next/link';
-import { Search as SearchIcon } from 'lucide-react';
-import { LiquidGlass } from '@/components/ui/liquid-glass';
+import { useState, useTransition } from 'react';
+import { Input } from "@/components/ui/input";
+import { User, Post } from '@/types';
+import { UserCard } from '../users/user-card'; 
+import PostCard from '../posts/post-card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search as SearchIcon, Loader2 } from 'lucide-react';
 
-
-type SearchClientProps = {
-  allUsers: User[];
-  allPosts: Post[];
-};
-
-export function SearchClient({ allUsers, allPosts }: SearchClientProps) {
-  const [query, setQuery] = useState('');
-
-  const lowercasedQuery = query.toLowerCase();
-
-  const filteredContent = useMemo(() => {
-    if (!lowercasedQuery) {
-      return { users: [], posts: allPosts }; // Show all posts by default
-    }
-
-    const users = allUsers.filter(
-      (user) =>
-        user.name.toLowerCase().includes(lowercasedQuery) ||
-        user.username.toLowerCase().includes(lowercasedQuery)
-    );
-
-    const posts = allPosts.filter((post) =>
-      post.content.toLowerCase().includes(lowercasedQuery) ||
-      post.author.name.toLowerCase().includes(lowercasedQuery) ||
-      post.author.username.toLowerCase().includes(lowercasedQuery)
-    );
-
-    return { users, posts };
-  }, [lowercasedQuery, allUsers, allPosts]);
-
-  const hasResults = filteredContent.users.length > 0 || filteredContent.posts.length > 0;
-  const showInitialState = !query;
-
-  return (
-    <ScrollArea className="h-full">
-      <div className="container mx-auto px-4 py-6">
-        <div className="sticky top-0 z-10 backdrop-blur-md bg-transparent -mx-4 px-4 mb-6">
-            <div className="relative">
-                <SearchIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/60" />
-                 <input
-                    type="search"
-                    placeholder="Search anything..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className="w-full bg-black/30 backdrop-blur-lg border border-white/20 rounded-full py-3 pl-12 pr-4 text-white placeholder:text-white/60 focus:outline-none focus:ring-2 focus:ring-neon-blue/50 transition-all"
-                />
-            </div>
-        </div>
-
-        {showInitialState ? (
-             <div className="flex flex-col gap-4">
-                <h2 className="font-headline text-2xl font-semibold text-white/90">Recent Posts</h2>
-                 {filteredContent.posts.map((post) => (
-                    <PostCard key={post.id} post={post} />
-                ))}
-            </div>
-        ) : hasResults ? (
-          <div className="flex flex-col gap-8">
-            {filteredContent.users.length > 0 && (
-              <section>
-                <h2 className="mb-4 font-headline text-2xl font-semibold text-white/90">Users</h2>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {filteredContent.users.map((user) => (
-                    <Link href={`/profile/${user.username}`} key={user.id}>
-                        <LiquidGlass as="div" className='p-1'>
-                            <div className="flex flex-row items-center gap-4 p-4">
-                                <Avatar className='w-12 h-12 border-2 border-white/30'>
-                                    <AvatarImage src={user.avatarUrl} alt={user.name} />
-                                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <p className="font-bold text-white/95">{user.name}</p>
-                                    <p className="text-sm text-white/70">@{user.username}</p>
-                                </div>
-                            </div>
-                        </LiquidGlass>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {filteredContent.posts.length > 0 && (
-              <section>
-                <h2 className="mb-4 font-headline text-2xl font-semibold text-white/90">Posts</h2>
-                <div className="flex flex-col gap-4">
-                  {filteredContent.posts.map((post) => (
-                    <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
-        ) : (
-          <div className="py-12 text-center text-white/60">
-            <p className='text-lg'>No results found for "{query}"</p>
-            <p className='text-sm text-white/50'>Try searching for something else.</p>
-          </div>
-        )}
-      </div>
-    </ScrollArea>
-  );
+interface SearchClientProps {
+    initialUsers?: User[];
+    initialPosts?: Post[];
 }
+
+// MOCK SEARCH FUNCTION
+async function mockSearch(query: string, type: 'users' | 'posts') {
+    console.log(`Mock searching for ${type} with query: "${query}"`);
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+    if (type === 'users') {
+        return [
+            // Dummy user data
+            { id: '1', name: 'Alice', username: 'alice', avatarUrl: 'https://i.pravatar.cc/150?u=alice' },
+            { id: '2', name: 'Bob', username: 'bob', avatarUrl: 'https://i.pravatar.cc/150?u=bob' },
+        ] as User[];
+    }
+    if (type === 'posts') {
+        return [
+            // Dummy post data
+            { id: 'p1', content: `Searching for ${query}`, author: { id: '1', name: 'Alice', username: 'alice', avatarUrl: '' }, createdAt: new Date().toISOString(), likes: 0, comments: [], commentCount: 0, shares: 0 },
+        ] as Post[];
+    }
+    return [];
+}
+
+export default function SearchClient({ initialUsers = [], initialPosts = [] }: SearchClientProps) {
+    const [query, setQuery] = useState('');
+    const [users, setUsers] = useState<User[]>(initialUsers);
+    const [posts, setPosts] = useState<Post[]>(initialPosts);
+    const [isSearching, startSearch] = useTransition();
+
+    const handleSearch = (value: string) => {
+        setQuery(value);
+        if (value.length > 1) {
+            startSearch(async () => {
+                const [userResults, postResults] = await Promise.all([
+                    mockSearch(value, 'users'),
+                    mockSearch(value, 'posts'),
+                ]);
+                setUsers(userResults);
+                setPosts(postResults);
+            });
+        }
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="relative">
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                    type="text"
+                    placeholder="Search for users or posts..."
+                    className="pl-10 w-full"
+                    onChange={(e) => handleSearch(e.target.value)}
+                    value={query}
+                />
+                {isSearching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin" />}
+            </div>
+
+            <Tabs defaultValue="users" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="users">Users</TabsTrigger>
+                    <TabsTrigger value="posts">Posts</TabsTrigger>
+                </TabsList>
+                <TabsContent value="users">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                        {users.map(user => (
+                            <UserCard key={user.id} user={user} />
+                        ))}
+                    </div>
+                    {!isSearching && users.length === 0 && query && (
+                        <p className="text-center text-muted-foreground mt-8">No users found for "{query}".</p>
+                    )}
+                </TabsContent>
+                <TabsContent value="posts">
+                    <div className="space-y-4 mt-4">
+                        {posts.map(post => (
+                            <PostCard key={post.id} post={post} />
+                        ))}
+                    </div>
+                     {!isSearching && posts.length === 0 && query && (
+                        <p className="text-center text-muted-foreground mt-8">No posts found for "{query}".</p>
+                    )}
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
+}
+

@@ -1,75 +1,85 @@
+
 'use client';
 
-import * as React from 'react';
-import { useAuth } from '@/context/auth-context';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { createPost } from '@/lib/actions';
-import { useToast } from '@/components/ui/use-toast';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { LiquidGlass } from '@/components/layout/liquid-glass';
-import { motion } from 'framer-motion';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/components/ui/use-toast";
 
-export function ComposePost() {
+const postSchema = z.object({
+  content: z.string().min(1, "Post can't be empty.").max(280, "Post can't be longer than 280 characters."),
+  // category and imageUrl are optional and handled separately
+});
+
+export default function ComposePost() {
   const { user } = useAuth();
-  const [content, setContent] = React.useState('');
-  const [isPending, startTransition] = React.useTransition();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!content.trim() || !user) return;
+  const form = useForm<z.infer<typeof postSchema>>({
+    resolver: zodResolver(postSchema),
+    defaultValues: {
+      content: "",
+    },
+  });
 
-    startTransition(async () => {
-      const result = await createPost(content);
-      if (result.error) {
-        toast({ variant: 'destructive', title: 'Error', description: result.error });
-      } else {
-        toast({ title: 'Success!', description: 'Your post has been published.' });
-        setContent('');
-        // Consider redirecting or updating the post list here
-      }
-    });
+  const onSubmit = async (values: z.infer<typeof postSchema>) => {
+    if (!user) {
+        toast({ title: "Error", description: "You must be logged in to post.", variant: "destructive" });
+        return;
+    }
+    setIsSubmitting(true);
+    try {
+        const postData = {
+            ...values,
+            category: 'other' as const, // Default category
+        };
+        const result = await createPost(postData);
+        if (result.error) {
+            toast({ title: "Error", description: result.error, variant: "destructive" });
+        } else {
+            toast({ title: "Success", description: "Post created!" });
+            form.reset();
+        }
+    } catch (error) {
+        toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   if (!user) {
-    return null; // Don't show the form if not logged in
+    return null; // Don't render the component if the user is not logged in
   }
 
   return (
-    <LiquidGlass 
-        as={motion.div}
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="p-4 rounded-2xl"
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="flex items-start gap-4">
-          <Avatar className="border border-white/50 h-11 w-11">
-            <AvatarImage src={user.avatarUrl ?? ''} alt={user.username} />
-            <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="What's happening?"
-            maxLength={280}
-            className="flex-1 bg-white/50 border-white/40 focus:ring-purple-500 text-gray-800 placeholder-gray-600 rounded-lg resize-none"
-            rows={3}
-          />
-        </div>
-        <div className="flex justify-end items-center gap-4">
-          <span className="text-sm text-gray-600">{280 - content.length}</span>
-          <Button 
-            type="submit" 
-            disabled={isPending || !content.trim()}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-full transition-colors disabled:bg-purple-400 disabled:cursor-not-allowed"
-          >
-            {isPending ? 'Posting...' : 'Post'}
-          </Button>
-        </div>
-      </form>
-    </LiquidGlass>
+    <div className="flex items-start space-x-4 p-4 border-b">
+      <Avatar>
+        <AvatarImage src={user.avatarUrl} alt={user.name} />
+        <AvatarFallback>{user.name?.[0]}</AvatarFallback>
+      </Avatar>
+      <div className="w-full">
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+            <Textarea
+                {...form.register("content")}
+                placeholder="What's happening?"
+                className="w-full border-none focus:ring-0 resize-none text-lg"
+                rows={3}
+            />
+            {form.formState.errors.content && <p className="text-red-500 text-sm mt-1">{form.formState.errors.content.message}</p>}
+            <div className="flex justify-end mt-2">
+                <Button type="submit" disabled={isSubmitting || !form.formState.isValid}>
+                    {isSubmitting ? 'Posting...' : 'Post'}
+                </Button>
+            </div>
+        </form>
+      </div>
+    </div>
   );
 }

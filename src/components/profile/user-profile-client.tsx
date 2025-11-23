@@ -1,98 +1,87 @@
+
 'use client';
 
-import { useState } from 'react';
-import type { User, Post } from '@/types';
-import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import { PostCard } from '@/components/posts/post-card';
-import { Card, CardContent } from '@/components/ui/card';
-import { useRouter } from 'next/navigation';
+import { User } from '@/types';
 import { useAuth } from '@/context/auth-context';
+import { Button } from '@/components/ui/button';
+import { Calendar, Mail, UserPlus, UserCheck } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useState } from 'react';
+import EditProfileDialog from './edit-profile-dialog';
+import { format } from 'date-fns';
 
-type UserProfileClientProps = {
-  user: User;
-  posts: Post[];
-};
+interface UserProfileClientProps {
+  profileUser: User;
+  // `createdAt` is mocked and won't be on the initial user object
+  // In a real app, this should be part of the User type and fetched from the DB
+  memberSince: Date;
+}
 
-export function UserProfileClient({ user, posts }: UserProfileClientProps) {
-  const router = useRouter();
-  const { user: currentUser } = useAuth(); // Get the logged-in user
-  const [isFollowing, setIsFollowing] = useState(false); // Placeholder state
-  
-  // Determine if the viewed profile is the current user's profile
-  const isCurrentUserProfile = currentUser?.username === user.username;
+export default function UserProfileClient({ profileUser, memberSince }: UserProfileClientProps) {
+    const { user: currentUser } = useAuth();
+    // Dummy state for follow functionality
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followerCount, setFollowerCount] = useState(profileUser.followers || 0);
 
-  // A more realistic follower count would come from props if available
-  const [followerCount, setFollowerCount] = useState(user.followers || 0);
+    const isOwnProfile = currentUser?.id === profileUser.id;
 
-  const handleFollowToggle = () => {
-    // This would typically involve an API call
-    setIsFollowing(!isFollowing);
-    setFollowerCount(isFollowing ? followerCount - 1 : followerCount + 1);
-  };
-
-  const handleEditProfile = () => {
-    router.push('/settings/profile');
-  };
+    const handleFollow = () => {
+        // This is a mocked action
+        setIsFollowing(!isFollowing);
+        setFollowerCount(prev => isFollowing ? prev - 1 : prev + 1);
+    };
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <Card className="overflow-hidden">
-        <div className="h-32 bg-secondary sm:h-48" />
-        <CardContent className="p-4 sm:p-6">
-          <div className="relative flex flex-col sm:flex-row sm:items-end sm:gap-6">
-            <div className="-mt-16 sm:-mt-24">
-              <div className="relative h-24 w-24 rounded-full border-4 border-card sm:h-32 sm:w-32">
-                <Image
-                  src={user.avatarUrl || 'https://picsum.photos/seed/placeholder/200/200'} // Fallback avatar
-                  alt={user.name}
-                  fill
-                  className="rounded-full object-cover"
-                  data-ai-hint="person portrait"
-                />
-              </div>
+    <div className="bg-card/50 backdrop-blur-lg border border-border/20 rounded-xl shadow-lg p-6">
+        {/* Banner */}
+        <div 
+            className="h-32 md:h-48 rounded-t-lg bg-cover bg-center -mx-6 -mt-6 mb-12" 
+            style={{ backgroundImage: `url(${profileUser.bannerUrl || '/default-banner.jpg'})` }}
+        />
+        
+        {/* Profile Header */}
+        <div className="flex flex-col md:flex-row items-center md:items-end -mt-24 space-y-4 md:space-y-0">
+            <Avatar className="w-32 h-32 border-4 border-background ring-2 ring-primary">
+                <AvatarImage src={profileUser.avatarUrl} alt={profileUser.name} />
+                <AvatarFallback>{profileUser.name?.[0]}</AvatarFallback>
+            </Avatar>
+            
+            <div className="md:ml-6 flex-grow">
+                <h1 className="text-3xl font-bold text-center md:text-left">{profileUser.name}</h1>
+                <p className="text-muted-foreground text-center md:text-left">@{profileUser.username}</p>
             </div>
-            <div className="mt-2 flex flex-1 flex-col gap-1 sm:mt-0">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="font-headline text-2xl font-bold">{user.name}</h1>
-                        <p className="text-muted-foreground">@{user.username}</p>
-                    </div>
-                    <div>
-                        {isCurrentUserProfile ? (
-                            <Button variant="outline" onClick={handleEditProfile}>Edit Profile</Button>
-                        ) : (
-                            <Button onClick={handleFollowToggle}>
-                            {isFollowing ? 'Following' : 'Follow'}
-                            </Button>
-                        )}
-                    </div>
+
+            {isOwnProfile ? (
+                <EditProfileDialog />
+            ) : (
+                <div className="flex items-center space-x-2">
+                    <Button variant={isFollowing ? "secondary" : "default"} onClick={handleFollow}>
+                        {isFollowing ? <UserCheck className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                        {isFollowing ? 'Following' : 'Follow'}
+                    </Button>
+                    <Button variant="outline"><Mail className="mr-2 h-4 w-4"/> Message</Button>
                 </div>
-                 {/* Display Bio if it exists */}
-                 {user.bio && <p className="mt-2 text-sm text-muted-foreground">{user.bio}</p>}
-                 <div className="mt-2 flex items-center gap-4 text-sm">
-                    <p><span className="font-bold">{user.following || 0}</span> Following</p>
-                    <p><span className="font-bold">{followerCount}</span> Followers</p>
-                 </div>
+            )}
+        </div>
+
+        {/* Bio and Stats */}
+        <div className="mt-8">
+            <p className="text-foreground/80 text-center md:text-left">{profileUser.bio || "No bio provided."}</p>
+            
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-6 gap-y-2 text-sm text-muted-foreground mt-4">
+                <div className="flex items-center">
+                    <span className="font-semibold text-foreground mr-1">{followerCount}</span> Followers
+                </div>
+                <div className="flex items-center">
+                    <span className="font-semibold text-foreground mr-1">{profileUser.following || 0}</span> Following
+                </div>
+                <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1.5" />
+                    Joined {format(memberSince, 'MMMM yyyy')}
+                </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <div className="mt-8">
-        <h2 className="mb-6 font-headline text-xl font-bold">Posts</h2>
-        {posts.length > 0 ? (
-          <div className="mx-auto grid max-w-2xl grid-cols-1 gap-6">
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} currentUser={currentUser} />
-            ))}
-          </div>
-        ) : (
-          <div className="py-12 text-center text-muted-foreground">
-            <p>@{user.username} hasn't posted anything yet.</p>
-          </div>
-        )}
-      </div>
+        </div>
     </div>
   );
 }
+

@@ -1,95 +1,59 @@
+
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getSuggestedUsers } from '@/lib/actions';
-import { User } from '@/types';
-import Link from 'next/link';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/auth-context';
+import { User } from "@/types";
+import { UserCard } from "./user-card";
+import { motion } from "framer-motion";
+import { RefreshCw } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { useState, useTransition } from "react";
 
-// Classic skeleton loader for a light theme
-function SuggestedUserSkeleton() {
-    return (
-        <div className="flex items-center space-x-4">
-            <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
-            <div className="flex-1 space-y-2">
-                <div className="h-4 w-3/4 rounded bg-gray-200 animate-pulse"></div>
-                <div className="h-3 w-1/2 rounded bg-gray-200 animate-pulse"></div>
-            </div>
-        </div>
-    );
+interface SuggestedUsersProps {
+  initialUsers: User[];
 }
 
-export function SuggestedUsers() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const { user: currentUser } = useAuth();
+// MOCK: In a real app, this would be a server action `getSuggestedUsers`
+async function fetchNewSuggestions(): Promise<User[]> {
+    console.log("--- MOCKED: Fetching new user suggestions ---");
+    await new Promise(r => setTimeout(r, 500)); // Simulate delay
+    // Return a new set of mock users
+    const timestamp = Date.now();
+    return [
+        { id: `mock-${timestamp}-1`, name: 'New User A', username: 'newusera', avatarUrl: `https://i.pravatar.cc/150?u=new-a-${timestamp}` },
+        { id: `mock-${timestamp}-2`, name: 'New User B', username: 'newuserb', avatarUrl: `https://i.pravatar.cc/150?u=new-b-${timestamp}` },
+        { id: `mock-${timestamp}-3`, name: 'New User C', username: 'newuserc', avatarUrl: `https://i.pravatar.cc/150?u=new-c-${timestamp}` },
+    ];
+}
 
-    useEffect(() => {
-        const fetchUsers = async () => {
-            if (currentUser) {
-                try {
-                    setLoading(true);
-                    const suggestedUsers = await getSuggestedUsers(currentUser.username);
-                    setUsers(suggestedUsers);
-                } catch (err) {
-                    setError('Failed to fetch suggestions.');
-                    console.error(err);
-                } finally {
-                    setLoading(false);
-                }
-            } else {
-                setUsers([]);
-                setLoading(false);
-            }
-        };
-        fetchUsers();
-    }, [currentUser]);
+export function SuggestedUsers({ initialUsers }: SuggestedUsersProps) {
+    const [users, setUsers] = useState<User[]>(initialUsers);
+    const [isPending, startTransition] = useTransition();
 
-    if (!currentUser) return null; 
+    const handleRefresh = () => {
+        startTransition(async () => {
+            const newUsers = await fetchNewSuggestions();
+            setUsers(newUsers);
+        });
+    };
 
-    if (loading) {
-        return (
-            <div className="space-y-4">
-                {[...Array(3)].map((_, i) => <SuggestedUserSkeleton key={i} />)}
-            </div>
-        );
-    }
-
-    if (error) {
-        return <p className="text-sm text-red-500">{error}</p>;
-    }
-
-    if (users.length === 0) {
-        return <p className="text-sm text-gray-500">No suggestions right now.</p>;
-    }
-
-    return (
-        <div className="space-y-4">
+  return (
+    <motion.div 
+        className="bg-card/50 backdrop-blur-lg border border-border/20 rounded-xl p-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+    >
+        <div className="flex justify-between items-center mb-4">
+            <h2 className="font-semibold text-lg">Who to Follow</h2>
+            <Button variant="ghost" size="icon" onClick={handleRefresh} disabled={isPending}>
+                <RefreshCw className={isPending ? "animate-spin" : ""} size={16}/>
+            </Button>
+        </div>
+        <div className="space-y-3">
             {users.map((user) => (
-                <div key={user.id} className="flex items-center justify-between gap-2">
-                    <Link href={`/profile/${user.username}`} className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-3 group">
-                           <Avatar className="h-10 w-10 border border-gray-300">
-                                <AvatarImage src={user.avatarUrl ?? ''} />
-                                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm text-gray-900 group-hover:underline truncate">{user.name}</p>
-                                <p className="text-xs text-gray-600 truncate">@{user.username}</p>
-                            </div>
-                        </div>
-                    </Link>
-                    <Button 
-                        size="sm" 
-                        variant="outline"
-                    >
-                        Follow
-                    </Button>
-                </div>
+                <UserCard key={user.id} user={user} />
             ))}
         </div>
-    );
+    </motion.div>
+  );
 }

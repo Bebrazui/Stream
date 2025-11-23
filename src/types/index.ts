@@ -6,9 +6,14 @@ export type User = {
   id: string;
   name: string;
   username: string;
+  email?: string; // Added
   avatarUrl: string;
   bannerUrl?: string;
   bio?: string; 
+  followers?: number; // Added
+  following?: number; // Added
+  posts?: Post[]; // Added
+  hasPremium?: boolean; // Added
   profileTheme?: ProfileTheme;
   avatarFrame?: AvatarFrame;
 };

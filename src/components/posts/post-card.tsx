@@ -1,129 +1,109 @@
+
 'use client';
 
-import type { Post, Comment, User } from '@/types';
+import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import * as React from 'react';
+import { motion, Variants } from 'framer-motion';
+import { Post, User } from '@/types';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import PostActions from './post-actions';
+import PostImage from './post-image';
+import CommentList from './comment-list';
 import { formatDistanceToNow } from 'date-fns';
-import { motion } from 'framer-motion';
-import { LiquidGlass } from '@/components/ui/liquid-glass';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, Repeat, Share } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { CommentForm } from '@/components/comments/comment-form';
-import { CommentList } from '@/components/comments/comment-list';
+import { useAuth } from '@/context/auth-context';
 
-const ActionButton = ({ children, onClick, active }: { children: React.ReactNode, onClick?: () => void, active?: boolean }) => (
-  <Button 
-    variant="ghost" 
-    size="icon" 
-    onClick={onClick}
-    className={`rounded-full text-white/70 hover:bg-white/20 hover:text-white transition-colors ${active ? 'text-neon-soft-pink' : ''}`}>
-    {children}
-  </Button>
-);
+interface PostCardProps {
+  post: Post;
+}
 
-export function PostCard({ post, currentUser }: { post: Post; currentUser: User | null }) {
-  const { toast } = useToast();
-  const [likes, setLikes] = React.useState(post.likes || 0);
-  const [isLiked, setIsLiked] = React.useState(false);
-  const [comments, setComments] = React.useState<Comment[]>(post.comments || []);
-  const [isCommentsVisible, setIsCommentsVisible] = React.useState(false);
+const PostCard: React.FC<PostCardProps> = ({ post }) => {
+    const { user: currentUser } = useAuth();
+    const [showComments, setShowComments] = useState(false);
 
-  const timeAgo = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true });
-
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikes(isLiked ? likes - 1 : likes + 1);
-    toast({ title: isLiked ? 'Unliked' : 'Liked!', description: `You ${isLiked ? 'unliked' : 'liked'} this post.` });
-  };
-
-  const handleAddComment = (values: { text: string }) => {
-    if (!currentUser) {
-        toast({ title: 'Error', description: 'You must be logged in to comment.', variant: 'destructive' });
-        return;
-    }
-    const newComment: Comment = {
-      id: `comment-${Date.now()}`,
-      text: values.text,
-      createdAt: new Date().toISOString(),
-      author: currentUser,
+    const cardVariants: Variants = {
+        hidden: {
+            opacity: 0,
+            filter: "blur(4px)",
+            y: 50
+        },
+        visible: {
+            opacity: 1,
+            filter: "blur(0px)",
+            y: 0,
+            transition: {
+                duration: 0.5,
+                ease: "easeOut"
+            }
+        }
     };
-    setComments(prevComments => [newComment, ...prevComments]);
-  };
 
-  const cardVariants = {
-    hidden: { opacity: 0, filter: 'blur(10px)', y: 50 },
-    visible: { 
-      opacity: 1, 
-      filter: 'blur(0px)', 
-      y: 0,
-      transition: { duration: 0.5, ease: "easeOut" } 
-    },
-  };
+  const userHasLiked = post.likedBy?.includes(currentUser?.id || '') || false;
 
   return (
     <motion.div
+      className="bg-card/50 backdrop-blur-lg border border-border/20 rounded-xl shadow-sm overflow-hidden p-5"
       variants={cardVariants}
       initial="hidden"
-      whileInView="visible"
-      viewport={{ amount: 0.3 }}
+      animate="visible"
+      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
     >
-      <LiquidGlass className="w-full max-w-2xl mx-auto">
-        <div className="p-5">
-          <div className="flex items-start gap-4">
-            <Link href={`/profile/${post.author.username}`}>
-              <Avatar className="w-12 h-12 border-2 border-white/30">
-                <AvatarImage src={post.author.avatarUrl} alt={`${post.author.name}\'s avatar`} />
-                <AvatarFallback className="bg-black/20 text-white">{post.author.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-            </Link>
-            <div className="flex-1">
-              <div className="flex items-baseline gap-2">
-                <Link href={`/profile/${post.author.username}`} className="font-bold text-white/90 hover:underline">
-                  {post.author.name}
+        {/* Card Header */}
+        <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center space-x-3">
+                <Link href={`/profile/${post.author.username}`}>
+                    <Avatar className="h-11 w-11">
+                        <AvatarImage src={post.author.avatarUrl} alt={post.author.name} />
+                        <AvatarFallback>{post.author.name?.[0]}</AvatarFallback>
+                    </Avatar>
                 </Link>
-                <span className="text-sm text-white/60">@{post.author.username} Â· {timeAgo}</span>
-              </div>
-              <p className="mt-2 text-white/90 whitespace-pre-wrap">{post.content}</p>
+                <div>
+                    <div className="flex items-center gap-2">
+                        <Link href={`/profile/${post.author.username}`} className="font-bold hover:underline">{post.author.name}</Link>
+                        <span className="text-sm text-muted-foreground">@{post.author.username}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+                    </p>
+                </div>
             </div>
-          </div>
-
-          {post.imageUrl && (
-            <div className="mt-4 rounded-2xl overflow-hidden border border-white/20 shadow-lg">
-              <Image src={post.imageUrl} alt="Post image" width={500} height={500} className="w-full h-auto object-cover" />
-            </div>
-          )}
-
-          <div className="mt-4 flex justify-around items-center border-t border-white/20 pt-2">
-            <div className="flex items-center gap-1">
-              <ActionButton onClick={() => setIsCommentsVisible(!isCommentsVisible)}>
-                <MessageCircle size={20} />
-              </ActionButton>
-              <span className="text-sm min-w-[1rem] text-white/60">{comments.length > 0 ? comments.length : ''}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <ActionButton><Repeat size={20} /></ActionButton>
-              <span className="text-sm min-w-[1rem] text-white/60">{post.shares || 0}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <ActionButton onClick={handleLike} active={isLiked}>
-                <Heart size={20} className={isLiked ? 'fill-current' : ''} />
-              </ActionButton>
-              <span className="text-sm min-w-[1rem] text-white/60">{likes > 0 ? likes : ''}</span>
-            </div>
-            <ActionButton><Share size={20} /></ActionButton>
-          </div>
+            {post.category && <Badge variant="secondary">{post.category}</Badge>}
         </div>
 
-        {isCommentsVisible && (
-          <div className="px-1">
-            <CommentForm onSubmit={handleAddComment} isSubmitting={false} />
-            <CommentList comments={comments} />
-          </div>
+        {/* Post Content */}
+        <p className="text-foreground/90 whitespace-pre-wrap mb-4">{post.content}</p>
+
+        {/* Image if it exists */}
+        {post.imageUrl && <PostImage src={post.imageUrl} alt={`Image for post by ${post.author.name}`} />}
+
+        {/* Actions */}
+        <PostActions 
+            postId={post.id}
+            initialLikes={post.likes}
+            initialShares={post.shares}
+            commentCount={post.commentCount}
+            userLiked={userHasLiked}
+        />
+
+        {/* Toggle Comments Button */}
+        {post.commentCount > 0 && (
+            <button 
+                onClick={() => setShowComments(!showComments)} 
+                className="text-sm text-muted-foreground mt-3 hover:underline"
+            >
+                {showComments ? 'Hide comments' : `View all ${post.commentCount} comments`}
+            </button>
         )}
-      </LiquidGlass>
+
+        {/* Comments Section */}
+        {showComments && (
+            <div className="mt-4">
+                <CommentList comments={post.comments || []} isLoading={false} />
+            </div>
+        )}
+
     </motion.div>
   );
-}
+};
+
+export default PostCard;

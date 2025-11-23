@@ -36,7 +36,7 @@ export function RightSidebar() {
             <div className="space-y-4">
                 <h3 className="px-4 text-lg font-semibold tracking-tight">Who to follow</h3>
                 <div className="px-4">
-                    <SuggestedUsers />
+                    <SuggestedUsers initialUsers={[]} />
                 </div>
             </div>
         </div>

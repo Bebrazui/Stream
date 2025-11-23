@@ -1,33 +1,42 @@
-'use server';
 
-import { User } from "@/types";
+import { z } from 'zod';
 
-// This is a placeholder for a real authentication system.
-// In a real app, you would get the user from a session, token, or database.
-
-// For demonstration purposes, we'll simulate a logged-in user.
-// You can change this to a specific user object or null to test different states.
-const MOCKED_USER: User | null = {
-    id: 'user-current-16927837433',
-    name: 'Demo User',
-    username: 'demouser',
-    avatarUrl: 'https://picsum.photos/seed/demouser/200/200',
-    bio: 'This is a demo user account. Feel free to edit this bio!',
-    followers: 42,
-    following: 15
-};
+// This file is kept for schema definitions and type safety, but the logic
+// for authentication (login, register, etc.) is now primarily in `actions.ts`.
 
 /**
- * Fetches the current logged-in user.
- * 
- * @returns {Promise<User | null>} A promise that resolves to the user object or null if not authenticated.
+ * Represents the data required for authentication actions (login/register).
+ * Used for form validation with Zod.
  */
-export async function getCurrentUser(): Promise<User | null> {
-    // In a real application, you might do the following:
-    // 1. Read a session cookie or a JWT from the request headers.
-    // 2. Validate the token/session.
-    // 3. Fetch the user from your database.
+export const authSchema = z.object({
+    username: z.string()
+        .min(3, "Username must be at least 3 characters.")
+        .max(20, "Username cannot be longer than 20 characters.")
+        .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores."),
+    password: z.string()
+        .min(6, "Password must be at least 6 characters.")
+        .max(100, "Password is too long."),
+    
+    // Optional fields for things like CAPTCHA
+    captchaAnswer: z.string().optional(),
+    captchaToken: z.string().optional(),
+});
 
-    // For now, we just return the mocked user.
-    return MOCKED_USER;
-}
+/**
+ * Represents the shape of the data returned after a successful authentication attempt.
+ */
+export const authResultSchema = z.object({
+    success: z.boolean(),
+    user: z.object({
+        id: z.string(),
+        username: z.string(),
+        name: z.string(),
+        avatarUrl: z.string().url().optional(),
+    }).optional(),
+    error: z.string().optional(),
+    // You could add other fields here like `requiresTwoFactor`, etc.
+});
+
+// Type alias for convenience
+export type AuthInput = z.infer<typeof authSchema>;
+export type AuthResult = z.infer<typeof authResultSchema>;

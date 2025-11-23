@@ -2,7 +2,7 @@
 
 import { getUserByUsername, getPosts } from '@/lib/actions';
 import { notFound } from 'next/navigation';
-import { UserProfileClient } from '@/components/profile/user-profile-client';
+import UserProfileClient from '@/components/profile/user-profile-client';
 
 export default async function UserProfilePage({ params: { username } }: { params: { username: string } }) {
   // Fetch the user data based on the username in the URL
@@ -13,13 +13,6 @@ export default async function UserProfilePage({ params: { username } }: { params
     notFound();
   }
 
-  // Fetch all posts - the client component will filter them
-  const userPosts = await getPosts(); 
-
-  return (
-    <UserProfileClient 
-      user={user} 
-      posts={userPosts.filter(p => p.author.username === user.username)} 
-    />
-  );
+  // The client component will fetch its own posts
+  return <UserProfileClient profileUser={user} memberSince={new Date()} />;
 }

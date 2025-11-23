@@ -1,72 +1,64 @@
+
 'use client';
 
-import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
-import { User } from '@/types';
-import { useRouter } from 'next/navigation';
+import { z } from 'zod';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/context/auth-context';
+import { updateProfile } from '@/lib/actions';
 import { useState } from 'react';
 
-const profileSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters.'),
-  bio: z.string().max(160, 'Bio must not be longer than 160 characters.').optional(),
-  avatarUrl: z.string().url('Please enter a valid URL.').optional(),
+const profileFormSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(50),
+  bio: z.string().max(160, { message: "Bio cannot be more than 160 characters." }).optional(),
+  avatarUrl: z.string().url({ message: "Please enter a valid URL." }).optional(),
 });
 
-type EditProfileFormProps = {
-  user: User;
-  updateUserAction: (formData: FormData, user: User) => Promise<{ success: boolean, user: User } | { error: string }>;
-};
+type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
-export function EditProfileForm({ user, updateUserAction }: EditProfileFormProps) {
+export default function EditProfileForm({ closeDialog }: { closeDialog: () => void }) {
+  const { user, setUser } = useAuth(); // Assume setUser is now available
   const { toast } = useToast();
-  const router = useRouter();
-  const { setUser } = useAuth(); // Get setUser to update context
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
-  const form = useForm<z.infer<typeof profileSchema>>({
-    resolver: zodResolver(profileSchema),
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: user.name || '',
-      bio: user.bio || '',
-      avatarUrl: user.avatarUrl || '',
+      name: user?.name || '',
+      bio: user?.bio || '',
+      avatarUrl: user?.avatarUrl || '',
     },
   });
 
-  async function onSubmit(values: z.infer<typeof profileSchema>) {
+  async function onSubmit(data: ProfileFormValues) {
     setIsSubmitting(true);
     const formData = new FormData();
-    formData.append('name', values.name);
-    formData.append('bio', values.bio || '');
-    formData.append('avatarUrl', values.avatarUrl || '');
-
-    try {
-      const result = await updateUserAction(formData, user);
-      if (result.success && result.user) {
-        toast({ title: 'Profile Updated', description: 'Your profile has been successfully updated.' });
-        setUser(result.user); // Update the user in the context
-        router.push(`/profile/${user.username}`); // Redirect to profile page
-      } else {
-        throw new Error(result.error ? JSON.stringify(result.error) : 'An unknown error occurred');
+    Object.entries(data).forEach(([key, value]) => {
+      if (value) {
+        formData.append(key, value);
       }
-    } catch (error) {
-      console.error('Update failed:', error);
-      toast({ title: 'Update Failed', description: `An error occurred: ${error instanceof Error ? error.message : String(error)}`, variant: 'destructive' });
-    } finally {
-        setIsSubmitting(false);
+    });
+
+    const result = await updateProfile(formData);
+
+    if ('success' in result && result.success && result.user) {
+      if(setUser) setUser(result.user); // Update user in context
+      toast({ title: "Success", description: "Profile updated successfully!" });
+      closeDialog();
+    } else if ('error' in result) {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
     }
+    setIsSubmitting(false);
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <FormField
           control={form.control}
           name="name"
@@ -75,19 +67,6 @@ export function EditProfileForm({ user, updateUserAction }: EditProfileFormProps
               <FormLabel>Name</FormLabel>
               <FormControl>
                 <Input placeholder="Your Name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="avatarUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Avatar URL</FormLabel>
-              <FormControl>
-                <Input placeholder="https://example.com/avatar.png" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -106,10 +85,22 @@ export function EditProfileForm({ user, updateUserAction }: EditProfileFormProps
             </FormItem>
           )}
         />
-        <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : 'Save Changes'}
-        </Button>
+        <FormField
+          control={form.control}
+          name="avatarUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Avatar URL</FormLabel>
+              <FormControl>
+                <Input placeholder="https://example.com/avatar.png" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Saving..." : "Save Changes"}</Button>
       </form>
     </Form>
   );
 }
+
