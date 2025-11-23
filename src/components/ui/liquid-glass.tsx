@@ -57,7 +57,7 @@ const LiquidGlass = forwardRef<HTMLDivElement, LiquidGlassProps>((
       <div 
         className="pointer-events-none absolute -inset-px rounded-lg opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         style={{
-          background: `radial-gradient(400px at var(--mouse-x, -200px) var(--mouse-y, -200px), rgba(255,255,255,0.15), transparent 40%)` // Немного усилен эффект свечения
+          background: `radial-gradient(200px at var(--mouse-x, -200px) var(--mouse-y, -200px), rgba(255,255,255,0.15), transparent 40%)` // Немного усилен эффект свечения
         }}
       />
       <div className="relative z-10">

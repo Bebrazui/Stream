@@ -12,21 +12,21 @@ export default function MainLayout({
   return (
     <SidebarProvider>
       <AuthModalController>
-        <div className="w-full max-w-7xl mx-auto flex">
+        <div className="w-full max-w-7xl mx-auto flex h-screen">
           {/* Left Sidebar - sticky */}
-          <aside className="hidden md:block w-[280px] h-screen sticky top-0 py-4 pr-4">
+          <aside className="hidden md:block w-[280px] h-full sticky top-0 py-4 pr-4">
              <SiteSidebar />
           </aside>
 
           {/* Main Content */}
-          <div className="flex-1 border-x border-white/20">
-            <main className="h-full">
+          <div className="flex-1 border-x border-white/20 flex flex-col min-w-0">
+            <main className="flex-1 overflow-y-auto">
               {children}
             </main>
           </div>
 
           {/* Right Sidebar - sticky */}
-          <aside className="hidden lg:block w-[350px] h-screen sticky top-0 py-4 pl-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <aside className="hidden lg:block w-[350px] h-full sticky top-0 py-4 pl-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <RightSidebar />
           </aside>
         </div>
