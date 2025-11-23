@@ -78,10 +78,8 @@ const config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
-      // Вот она, магия "жидкого стекла"!
       boxShadow: {
-        'glass-inset': 'inset 0 2px 4px 0 rgba(255, 255, 255, 0.5)',
-        'glass-reflex': '0 8px 32px 0 rgba(31, 38, 135, 0.2)',
+        'glassmorphism': 'inset 0 2px 1px 0 rgba(255, 255, 255, 0.15), 0 8px 32px 0 rgba(0, 0, 0, 0.3)',
       }
     },
   },

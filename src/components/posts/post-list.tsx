@@ -3,13 +3,14 @@
 import type { Post, User } from '@/types';
 import PostCard from './post-card';
 import { Skeleton } from '../ui/skeleton';
+import { placeholderPosts } from '@/lib/placeholder-data';
 
 interface PostListProps {
-  posts: Post[];
-  isLoading: boolean;
+  posts?: Post[];
+  isLoading?: boolean;
 }
 
-export function PostList({ posts, isLoading }: PostListProps) {
+export function PostList({ posts = placeholderPosts, isLoading = false }: PostListProps) {
 
   if (isLoading) {
     return (

@@ -1,25 +1,35 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { ru } from 'date-fns/locale';
 
 interface TimeAgoProps {
   date: string;
+  className?: string;
 }
 
-export function TimeAgo({ date }: TimeAgoProps) {
+export function TimeAgo({ date, className }: TimeAgoProps) {
   const [timeAgo, setTimeAgo] = useState('');
 
   useEffect(() => {
-    // Форматируем дату только после того, как компонент смонтировался на клиенте
-    setTimeAgo(formatDistanceToNow(new Date(date), { addSuffix: true }));
+    const dateObj = new Date(date);
+    
+    // Устанавливаем начальное значение
+    setTimeAgo(formatDistanceToNow(dateObj, { addSuffix: true, locale: ru }));
+
+    // Обновляем каждую минуту
+    const interval = setInterval(() => {
+      setTimeAgo(formatDistanceToNow(dateObj, { addSuffix: true, locale: ru }));
+    }, 60000);
+
+    return () => clearInterval(interval);
   }, [date]);
 
-  // На сервере и во время первой отрисовки на клиенте ничего не рендерим
+  // Чтобы избежать ошибок гидратации, на сервере и при первой отрисовке ничего не рендерим
   if (!timeAgo) {
     return null;
   }
 
-  return <span className="text-sm text-gray-500">@{timeAgo}</span>;
+  return <span className={className}>{timeAgo}</span>;
 }

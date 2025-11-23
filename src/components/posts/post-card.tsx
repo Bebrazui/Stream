@@ -1,16 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { motion, Variants } from 'framer-motion';
-import { Post, User } from '@/types';
+import { Post } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import PostActions from './post-actions';
 import { PostImage } from './post-image';
 import CommentList from './comment-list';
-import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '@/context/auth-context';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
+import { TimeAgo } from '@/components/ui/time-ago';
+
+const cardVariants: Variants = {
+    hidden: {
+        opacity: 0,
+        filter: "blur(4px)",
+        y: 50
+    },
+    visible: {
+        opacity: 1,
+        filter: "blur(0px)",
+        y: 0,
+        transition: {
+            duration: 0.5,
+            ease: "easeOut"
+        }
+    }
+};
 
 interface PostCardProps {
   post: Post;
@@ -20,32 +38,20 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     const { user: currentUser } = useAuth();
     const [showComments, setShowComments] = useState(false);
 
-    const cardVariants: Variants = {
-        hidden: {
-            opacity: 0,
-            filter: "blur(4px)",
-            y: 50
-        },
-        visible: {
-            opacity: 1,
-            filter: "blur(0px)",
-            y: 0,
-            transition: {
-                duration: 0.5,
-                ease: "easeOut"
-            }
-        }
-    };
+    const userHasLiked = post.likedBy?.includes(currentUser?.id || '') || false;
 
-  const userHasLiked = post.likedBy?.includes(currentUser?.id || '') || false;
+    const motionProps = useMemo(() => ({
+        variants: cardVariants,
+        initial: "hidden",
+        whileInView: "visible",
+        viewport: { once: true, amount: 0.2 },
+        whileHover: { scale: 1.02, transition: { duration: 0.2 } }
+    }), []);
 
   return (
-    <motion.div
-      className="bg-card/50 backdrop-blur-lg border border-border/20 rounded-xl shadow-sm overflow-hidden p-5"
-      variants={cardVariants}
-      initial="hidden"
-      animate="visible"
-      whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+    <LiquidGlass
+      className="p-5 rounded-xl"
+      motionProps={motionProps}
     >
         {/* Card Header */}
         <div className="flex items-start justify-between mb-4">
@@ -61,22 +67,20 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                         <Link href={`/profile/${post.author.username}`} className="font-bold hover:underline">{post.author.name}</Link>
                         <span className="text-sm text-muted-foreground">@{post.author.username}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-                    </p>
+                    <TimeAgo date={post.createdAt} className="text-xs text-muted-foreground" />
                 </div>
             </div>
             {post.category && <Badge variant="secondary">{post.category}</Badge>}
         </div>
 
         {/* Post Content */}
-        <p className="text-foreground/90 whitespace-pre-wrap mb-4">{post.content}</p>
+        <p className="text-slate-100/90 whitespace-pre-wrap mb-4">{post.content}</p>
 
         {/* Image if it exists */}
         {post.imageUrl && <PostImage src={post.imageUrl} alt={`Image for post by ${post.author.name}`} />}
 
         {/* Actions */}
-        <PostActions 
+        <PostActions
             postId={post.id}
             initialLikes={post.likes}
             initialShares={post.shares}
@@ -86,8 +90,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
         {/* Toggle Comments Button */}
         {post.commentCount > 0 && (
-            <button 
-                onClick={() => setShowComments(!showComments)} 
+            <button
+                onClick={() => setShowComments(!showComments)}
                 className="text-sm text-muted-foreground mt-3 hover:underline"
             >
                 {showComments ? 'Hide comments' : `View all ${post.commentCount} comments`}
@@ -101,7 +105,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
             </div>
         )}
 
-    </motion.div>
+    </LiquidGlass>
   );
 };
 
