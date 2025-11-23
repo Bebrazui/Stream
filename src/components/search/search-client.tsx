@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -8,6 +7,7 @@ import { UserCard } from '../users/user-card';
 import PostCard from '../posts/post-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search as SearchIcon, Loader2 } from 'lucide-react';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 
 interface SearchClientProps {
     initialUsers?: User[];
@@ -55,26 +55,30 @@ export default function SearchClient({ initialUsers = [], initialPosts = [] }: S
     };
 
     return (
-        <div className="space-y-6">
-            <div className="relative">
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                    type="text"
-                    placeholder="Search for users or posts..."
-                    className="pl-10 w-full"
-                    onChange={(e) => handleSearch(e.target.value)}
-                    value={query}
-                />
-                {isSearching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin" />}
+        <Tabs defaultValue="users" className="w-full">
+            <div className="p-4">
+                <LiquidGlass className="p-4 rounded-lg space-y-4">
+                    <div className="relative">
+                        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            type="text"
+                            placeholder="Search for users or posts..."
+                            className="pl-10 w-full bg-transparent border-white/20 focus:border-white/60"
+                            onChange={(e) => handleSearch(e.target.value)}
+                            value={query}
+                        />
+                        {isSearching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin" />}
+                    </div>
+                    <TabsList className="grid w-full grid-cols-2 bg-transparent">
+                        <TabsTrigger value="users" className="data-[state=active]:bg-white/10 rounded-md">Users</TabsTrigger>
+                        <TabsTrigger value="posts" className="data-[state=active]:bg-white/10 rounded-md">Posts</TabsTrigger>
+                    </TabsList>
+                </LiquidGlass>
             </div>
 
-            <Tabs defaultValue="users" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="users">Users</TabsTrigger>
-                    <TabsTrigger value="posts">Posts</TabsTrigger>
-                </TabsList>
+            <div className="px-4">
                 <TabsContent value="users">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                         {users.map(user => (
                             <UserCard key={user.id} user={user} />
                         ))}
@@ -84,7 +88,7 @@ export default function SearchClient({ initialUsers = [], initialPosts = [] }: S
                     )}
                 </TabsContent>
                 <TabsContent value="posts">
-                    <div className="space-y-4 mt-4">
+                    <div className="space-y-4">
                         {posts.map(post => (
                             <PostCard key={post.id} post={post} />
                         ))}
@@ -93,7 +97,7 @@ export default function SearchClient({ initialUsers = [], initialPosts = [] }: S
                         <p className="text-center text-muted-foreground mt-8">No posts found for "{query}".</p>
                     )}
                 </TabsContent>
-            </Tabs>
-        </div>
+            </div>
+        </Tabs>
     );
 }
