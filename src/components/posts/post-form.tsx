@@ -22,7 +22,6 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import type { PostCategory } from '@/types';
 import { Upload, X, Sparkles } from 'lucide-react';
@@ -35,7 +34,6 @@ const postSchema = z.object({
 
 type PostFormValues = z.infer<typeof postSchema>;
 
-// The props now expect the new return type from our server action
 type PostFormProps = {
   createPostAction: (data: PostFormValues) => Promise<{ success: boolean; error?: string }>;
 };
@@ -154,7 +152,6 @@ export function PostForm({ createPostAction }: PostFormProps) {
   };
 
   async function onSubmit(data: PostFormValues) {
-    // We no longer need a try-catch block here because the server action handles it.
     const result = await createPostAction(data);
 
     if (result.success) {
@@ -165,31 +162,28 @@ export function PostForm({ createPostAction }: PostFormProps) {
       form.reset();
       setImagePreview(null);
     } else {
-      // If there's an error, display it in the toast.
       toast({
         variant: 'destructive',
         title: 'Failed to create post',
-        // Use the specific error message from the server.
         description: result.error || 'An unknown error occurred.',
       });
     }
   }
 
   return (
-    <Card>
-      <CardContent className="p-6">
+    <div className="w-full">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormField
               control={form.control}
               name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>What's on your mind?</FormLabel>
+                  <FormLabel className="text-white text-lg">What's on your mind?</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Share your thoughts with the world..."
-                      className="min-h-[120px] resize-y"
+                      placeholder="Share your thoughts with the universe..."
+                      className="min-h-[250px] resize-none bg-black/30 border-white/20 text-lg text-white placeholder:text-white/50 focus:ring-primary"
                       {...field}
                     />
                   </FormControl>
@@ -203,15 +197,15 @@ export function PostForm({ createPostAction }: PostFormProps) {
               name="imageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image (Optional)</FormLabel>
+                  <FormLabel className="text-white">Image (Optional)</FormLabel>
                   <FormControl>
                     <div>
                       <div
                         onDrop={onDrop}
                         onDragOver={onDragOver}
                         onDragLeave={onDragLeave}
-                        className={`relative flex min-h-[150px] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
-                          isDragging ? 'border-primary bg-accent' : 'border-input'
+                        className={`relative flex min-h-[200px] w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${
+                          isDragging ? 'border-primary bg-primary/20' : 'border-white/20 bg-black/30'
                         }`}
                       >
                          <input
@@ -232,17 +226,17 @@ export function PostForm({ createPostAction }: PostFormProps) {
                               type="button"
                               variant="destructive"
                               size="icon"
-                              className="absolute right-2 top-2 z-10 h-6 w-6"
+                              className="absolute right-2 top-2 z-10 h-7 w-7"
                               onClick={clearImage}
                             >
-                              <X className="h-4 w-4" />
+                              <X className="h-5 w-5" />
                             </Button>
                           </>
                         ) : (
-                          <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
-                            <Upload className="h-8 w-8" />
-                            <p>Drag & drop an image here, or click to select a file</p>
-                            <p className="text-xs">Compressed to WebP format</p>
+                          <div className="flex flex-col items-center gap-2 text-center text-white/70">
+                            <Upload className="h-10 w-10" />
+                            <p>Drag & drop an image here, or click to select</p>
+                            <p className="text-xs">It will be compressed to WebP format</p>
                           </div>
                         )}
                       </div>
@@ -258,10 +252,10 @@ export function PostForm({ createPostAction }: PostFormProps) {
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel className="text-white">Category</FormLabel>
                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-black/30 border-white/20 text-white">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
@@ -278,18 +272,17 @@ export function PostForm({ createPostAction }: PostFormProps) {
               )}
             />
             
-            <div className="flex items-center justify-between gap-4">
-                <Button type="button" variant="outline" onClick={suggestIdea}>
+            <div className="flex items-center justify-between gap-4 pt-4">
+                <Button type="button" variant="outline" onClick={suggestIdea} className="bg-transparent border-primary/50 text-primary hover:bg-primary/20 hover:text-primary">
                     <Sparkles className="mr-2 h-4 w-4" />
                     Suggest Idea
                 </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Posting...' : 'Post'}
+              <Button type="submit" size="lg" className="bg-primary hover:bg-primary/90 text-white" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? 'Posting...' : 'Create Post'}
               </Button>
             </div>
           </form>
         </Form>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
