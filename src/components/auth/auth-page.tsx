@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
 
 interface AuthPageProps {
     title: string;
@@ -27,22 +28,24 @@ export function AuthPage({ title, description, formComponent, switchLinkHref, sw
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-950">
-            <Card className="mx-auto max-w-sm">
-                <CardHeader className="space-y-1 text-center">
-                    <CardTitle className="text-2xl font-bold">{title}</CardTitle>
-                    <CardDescription>{description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        {formComponent}
-                    </div>
-                    <div className="mt-4 text-center text-sm">
-                        <Link href={switchLinkHref} className="underline">
-                            {switchLinkText}
-                        </Link>
-                    </div>
-                </CardContent>
-            </Card>
+            <LiquidGlass className="mx-auto max-w-sm">
+                <Card className="bg-transparent border-none shadow-none">
+                    <CardHeader className="space-y-1 text-center">
+                        <CardTitle className="text-2xl font-bold">{title}</CardTitle>
+                        <CardDescription>{description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {formComponent}
+                        </div>
+                        <div className="mt-4 text-center text-sm">
+                            <Link href={switchLinkHref} className="underline">
+                                {switchLinkText}
+                            </Link>
+                        </div>
+                    </CardContent>
+                </Card>
+            </LiquidGlass>
         </div>
     );
 }
