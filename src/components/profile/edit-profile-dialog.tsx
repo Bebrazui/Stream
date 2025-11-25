@@ -11,15 +11,19 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import EditProfileForm from "./edit-profile-form";
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 
-export default function EditProfileDialog() {
+interface EditProfileDialogProps {
+    triggerButton?: ReactNode;
+}
+
+export default function EditProfileDialog({ triggerButton }: EditProfileDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Edit Profile</Button>
+        {triggerButton || <Button variant="outline">Edit Profile</Button>}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
