@@ -23,8 +23,9 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import type { PostCategory } from '@/types';
-import { Upload, X, Sparkles } from 'lucide-react';
+import type { PostCategory, User } from '@/types';
+import { Upload, X, Sparkles, LogIn } from 'lucide-react';
+import { useAuthModal } from '@/hooks/use-auth-modal';
 
 const postSchema = z.object({
   content: z.string().min(1, 'Post content cannot be empty.').max(280, 'Post content is too long.'),
@@ -36,6 +37,7 @@ type PostFormValues = z.infer<typeof postSchema>;
 
 type PostFormProps = {
   createPostAction: (data: PostFormValues) => Promise<{ success: boolean; error?: string }>;
+  user: User | null;
 };
 
 const categories: { value: PostCategory; label: string }[] = [
@@ -82,10 +84,11 @@ async function compressImage(file: File): Promise<string> {
   });
 }
 
-export function PostForm({ createPostAction }: PostFormProps) {
+export function PostForm({ createPostAction, user }: PostFormProps) {
   const { toast } = useToast();
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const { openModal } = useAuthModal();
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
@@ -168,6 +171,33 @@ export function PostForm({ createPostAction }: PostFormProps) {
         description: result.error || 'An unknown error occurred.',
       });
     }
+  }
+
+  if (!user) {
+    return (
+      <div className="w-full rounded-xl bg-black/30 p-8 text-center">
+        <h2 className="text-2xl font-bold text-white">Create a Post</h2>
+        <p className="mb-6 mt-2 text-white/70">You need to be logged in to create a post.</p>
+        <div className="flex flex-col items-center gap-4">
+            <Button
+              size="lg"
+              className="w-full max-w-xs bg-primary hover:bg-primary/90 text-white"
+              onClick={() => openModal('register')}
+            >
+              Register
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full max-w-xs border-primary/50 bg-transparent text-primary hover:bg-primary/20 hover:text-primary"
+              onClick={() => openModal('login')}
+            >
+              <LogIn className="mr-2 h-4 w-4" />
+              Login
+            </Button>
+        </div>
+      </div>
+    );
   }
 
   return (

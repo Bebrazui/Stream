@@ -1,30 +1,41 @@
 'use client';
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { LoginForm } from './login-form';
-import { RegisterForm } from './register-form';
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogOverlay } from '@/components/ui/dialog';
+import { useAuthModal } from '@/hooks/use-auth-modal';
+import { AuthForm } from '@/components/auth/auth-form';
+import { LiquidGlass } from '@/components/ui/liquid-glass';
+import { cn } from '@/lib/utils';
 
-export const AuthModal = ({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) => {
-  const [isLoginView, setIsLoginView] = useState(true);
+export function AuthModal() {
+  const { isOpen, closeModal, view } = useAuthModal();
+  const [currentView, setCurrentView] = useState(view);
+
+  // Sync state with hook
+  useEffect(() => {
+    setCurrentView(view);
+  }, [view]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{isLoginView ? 'Login' : 'Create an Account'}</DialogTitle>
-          <DialogDescription>
-            {isLoginView ? "You need to be logged in to do that." : "Join the community to share and connect."}
-          </DialogDescription>
-        </DialogHeader>
-        {isLoginView ? <LoginForm /> : <RegisterForm />}
-        <div className="mt-4 text-center">
-          <Button variant="link" onClick={() => setIsLoginView(!isLoginView)}>
-            {isLoginView ? "Don't have an account? Register" : "Already have an account? Login"}
-          </Button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={closeModal}>
+      <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
+      <DialogContent className={cn(
+        "sm:max-w-[425px]",
+        "bg-transparent border-none p-0",
+        "outline-none",
+        "focus:outline-none",
+        "data-[state=open]:animate-content-show",
+        "data-[state=closed]:animate-content-hide"
+      )}>
+        <LiquidGlass motionProps={{ layout: true }} className="p-6">
+          <DialogHeader>
+            <DialogTitle className="text-slate-100 text-2xl font-bold">
+              {currentView === 'login' ? 'Log In' : 'Create Account'}
+            </DialogTitle>
+          </DialogHeader>
+          <AuthForm view={currentView} />
+        </LiquidGlass>
       </DialogContent>
     </Dialog>
   );
-};
+}

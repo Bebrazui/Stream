@@ -3,8 +3,8 @@
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { Post, User, Comment, Community } from '@/types';
-import { createSession, getSessionUser, deleteSession } from '@/lib/session';
+import { Post, User } from '@/types';
+import { getSession, createSession, getSessionUser, deleteSession, updateSession } from '@/lib/session';
 import axios from 'axios';
 import { randomUUID } from 'crypto';
 
@@ -18,94 +18,113 @@ const postSchema = z.object({
   imageUrl: z.string().optional(),
 });
 
-const communitySchema = z.object({
-    name: z.string().min(3).max(21),
-    description: z.string().max(500).optional(),
-});
-
-const profileSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters.'),
-  bio: z.string().max(160, 'Bio must not be longer than 160 characters.').optional(),
-  avatarUrl: z.string().url('Please enter a valid URL.').optional(),
-});
-
 const authSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters."),
     password: z.string().min(6, "Password must be at least 6 characters."),
-    captchaAnswer: z.string().optional(),
-    captchaToken: z.string().optional(),
 });
 
-// --- MOCKED SERVER ACTIONS ---
+// --- User & Auth ---
 
-// --- CAPTCHA ---
-export async function generateCaptcha() {
-    console.log("--- MOCKED: generateCaptcha() ---");
-    return {
-        captchaQuestion: "What is 1 + 1?",
-        captchaToken: "mock-token",
-    };
+export async function getCurrentUser(): Promise<User | null> {
+    return getSessionUser();
 }
+
+// --- GitHub API Helpers ---
+
+async function getFileFromRepo(path: string): Promise<{ content: any, sha: string | undefined }> {
+    const repoUrl = GITHUB_REPO_URL?.replace('https://github.com/', '');
+    const apiUrl = `https://api.github.com/repos/${repoUrl}/contents/${path}`;
+
+    try {
+        const { data: fileData } = await axios.get(apiUrl, {
+            headers: {
+                Authorization: `token ${GITHUB_TOKEN}`,
+                Accept: 'application/vnd.github.v3+json',
+            },
+        });
+        const content = JSON.parse(Buffer.from(fileData.content, 'base64').toString('utf-8'));
+        return { content, sha: fileData.sha };
+    } catch (error: any) {
+        if (error.response && error.response.status === 404) {
+            return { content: [], sha: undefined };
+        }
+        console.error(`Error fetching ${path}:`, error);
+        throw new Error(`Failed to fetch ${path} from repository.`);
+    }
+}
+
+async function saveFileToRepo(path: string, data: any, commitMessage: string, sha?: string) {
+    const repoUrl = GITHUB_REPO_URL?.replace('https://github.com/', '');
+    const apiUrl = `https://api.github.com/repos/${repoUrl}/contents/${path}`;
+    
+    const updatedContent = Buffer.from(JSON.stringify(data, null, 2)).toString('base64');
+
+    const requestBody: { message: string; content: string; sha?: string } = {
+        message: commitMessage,
+        content: updatedContent,
+    };
+
+    if (sha) {
+        requestBody.sha = sha;
+    }
+
+    await axios.put(apiUrl, requestBody, {
+        headers: {
+            Authorization: `token ${GITHUB_TOKEN}`,
+            Accept: 'application/vnd.github.v3+json',
+        },
+    });
+}
+
 
 // --- User & Auth ---
 export async function register(data: z.infer<typeof authSchema>) {
-    console.log("--- MOCKED: register() ---");
     const validated = authSchema.safeParse(data);
     if (!validated.success) return { error: "Invalid data." };
 
     const { username } = validated.data;
-    const mockUser: User = {
+
+    const { content: users, sha } = await getFileFromRepo('users.json');
+
+    const existingUser = (users as User[]).find(u => u.username.toLowerCase() === username.toLowerCase());
+    if (existingUser) {
+        return { success: false, error: "Username already taken. Please choose another one." };
+    }
+
+    const newUser: User = {
         id: `user-mock-${Date.now()}`,
         username,
         name: username,
         avatarUrl: `https://i.pravatar.cc/150?u=${username}`,
     };
-    await createSession(mockUser);
-    return { success: true, user: mockUser };
+
+    const updatedUsers = [...users, newUser];
+    await saveFileToRepo('users.json', updatedUsers, `New user registration: ${username}`, sha);
+    
+    await createSession(newUser);
+    return { success: true, user: newUser };
 }
 
 export async function login(data: z.infer<typeof authSchema>) {
-    console.log("--- MOCKED: login() ---");
     const validated = authSchema.safeParse(data);
     if (!validated.success) return { error: "Invalid data." };
 
     const { username } = validated.data;
-    const mockUser: User = {
-        id: `user-mock-${Date.now()}`,
-        username,
-        name: username,
-        avatarUrl: `https://i.pravatar.cc/150?u=${username}`,
-    };
-    await createSession(mockUser);
-    return { success: true, user: mockUser };
+
+    const { content: users } = await getFileFromRepo('users.json');
+    const user = (users as User[]).find(u => u.username.toLowerCase() === username.toLowerCase());
+
+    if (!user) {
+        return { success: false, error: "Invalid username or password." };
+    }
+    
+    await createSession(user);
+    return { success: true, user };
 }
 
 export async function logout() {
-    console.log("--- LOGIC KEPT: logout() ---");
     await deleteSession();
     redirect('/home');
-}
-
-// --- Community ---
-export async function createCommunity(values: z.infer<typeof communitySchema>, creator: User) {
-    console.log("--- MOCKED: createCommunity() ---");
-    const validated = communitySchema.safeParse(values);
-    if (!validated.success) return { error: "Invalid community data." };
-
-    const { name, description } = validated.data;
-
-    const newCommunity: Community = {
-        id: `comm-mock-${Date.now()}`,
-        name,
-        slug: name.toLowerCase().replace(/\s+/g, '-'),
-        description: description || 'A new community!',
-        creator,
-        members: 1,
-        createdAt: new Date().toISOString(),
-    };
-
-    revalidatePath('/');
-    return { success: true, community: newCommunity };
 }
 
 // --- Post & Interaction ---
@@ -136,132 +155,41 @@ export async function createPost(data: z.infer<typeof postSchema>): Promise<{ su
     };
 
     try {
-        const repoUrl = GITHUB_REPO_URL?.replace('https://github.com/', '');
-        const apiUrl = `https://api.github.com/repos/${repoUrl}/contents/posts.json`;
-
-        let posts: Post[] = [];
-        let currentSha: string | undefined;
-
-        try {
-            const { data: fileData } = await axios.get(apiUrl, {
-                headers: {
-                    Authorization: `token ${GITHUB_TOKEN}`,
-                    Accept: 'application/vnd.github.v3+json',
-                },
-            });
-            const currentContent = Buffer.from(fileData.content, 'base64').toString('utf-8');
-            posts = JSON.parse(currentContent);
-            currentSha = fileData.sha;
-        } catch (error: any) {
-            if (error.response && error.response.status !== 404) {
-                throw error;
-            }
-        }
-
-        posts.unshift(newPost);
-
-        const updatedContent = Buffer.from(JSON.stringify(posts, null, 2)).toString('base64');
-
-        const requestBody: { message: string; content: string; sha?: string } = {
-            message: `New post by ${user.username}`,
-            content: updatedContent,
-        };
-
-        if (currentSha) {
-            requestBody.sha = currentSha;
-        }
-
-        await axios.put(apiUrl, requestBody, {
-            headers: {
-                Authorization: `token ${GITHUB_TOKEN}`,
-                Accept: 'application/vnd.github.v3+json',
-            },
-        });
-
+        const { content: posts, sha } = await getFileFromRepo('posts.json');
+        const updatedPosts = [newPost, ...posts];
+        await saveFileToRepo('posts.json', updatedPosts, `New post by ${user.username}`, sha);
+        
         revalidatePath('/');
         return { success: true };
 
     } catch (error) {
         console.error("Error creating post:", error);
-        return { success: false, error: "Failed to create post on GitHub." };
+        return { success: false, error: "Failed to create post." };
     }
-}
-
-export async function addComment(postId: string, text: string) {
-    console.log("--- MOCKED: addComment() ---");
-    const user = await getSessionUser();
-    if (!user) return { error: "Mock Auth: Please log in." };
-    await new Promise(resolve => setTimeout(resolve, 300));
-    revalidatePath('/');
-    return { success: true };
-}
-
-export async function updatePostLikes(postId: string) {
-    console.log("--- MOCKED: updatePostLikes() ---");
-    const user = await getSessionUser();
-    if (!user) return { error: "Mock Auth: Please log in." };
-    return { success: true, likes: Math.floor(Math.random() * 100), likedBy: [] };
-}
-
-export async function updatePostShares(postId: string) {
-    console.log("--- MOCKED: updatePostShares() ---");
-    return { success: true, shares: Math.floor(Math.random() * 50) };
-}
-
-// --- Profile ---
-export async function updateProfile(formData: FormData) {
-    console.log("--- MOCKED: updateProfile() ---");
-    const user = await getSessionUser();
-    if (!user) return { error: 'Mock Auth: Please log in.' };
-    return { success: true, user };
 }
 
 // --- Data Fetching ---
 export async function getPosts(): Promise<Post[]> {
     try {
-        const repoUrl = GITHUB_REPO_URL?.replace('https://github.com/', '');
-        const apiUrl = `https://api.github.com/repos/${repoUrl}/contents/posts.json`;
-
-        const { data: fileData } = await axios.get(apiUrl, {
-            headers: {
-                Authorization: `token ${GITHUB_TOKEN}`,
-                Accept: 'application/vnd.github.v3+json',
-            },
-        });
-
-        const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
-        return JSON.parse(content);
-    } catch (error: any) {
-        if (error.response && error.response.status === 404) {
-            // If the file doesn't exist, return an empty array, which is a valid state.
-            return [];
-        }
+        const { content: posts } = await getFileFromRepo('posts.json');
+        return posts;
+    } catch (error) {
         console.error("Error fetching posts:", error);
-        // In case of other errors, returning an empty array to prevent app crash.
         return [];
     }
 }
 
 export async function getUsers(): Promise<User[]> {
-    console.log("--- MOCKED: getUsers() ---");
-    return [];
-}
-
-export async function getSuggestedUsers(): Promise<User[]> {
-    console.log("--- MOCKED: getSuggestedUsers() ---");
-    return [];
+    try {
+        const { content: users } = await getFileFromRepo('users.json');
+        return users;
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        return [];
+    }
 }
 
 export async function getUserByUsername(username: string): Promise<User | null> {
-    console.log("--- MOCKED: getUserByUsername() ---");
-    if (username) {
-        return {
-            id: `user-mock-profile-${Date.now()}`,
-            username: username,
-            name: username.charAt(0).toUpperCase() + username.slice(1),
-            avatarUrl: `https://i.pravatar.cc/150?u=${username}`,
-            bio: `This is a mocked profile for ${username}.`,
-        };
-    }
-    return null;
+    const users = await getUsers();
+    return users.find(u => u.username.toLowerCase() === username.toLowerCase()) || null;
 }

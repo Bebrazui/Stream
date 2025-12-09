@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Search, PlusSquare, Waves, Settings } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuthModal } from '@/hooks/use-auth-modal';
 import { useAuth } from '@/context/auth-context';
-import { useInteraction } from '@/context/interaction-context';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
@@ -14,28 +14,25 @@ const menuItems = [
   { href: '/compose', label: 'Compose Post', icon: PlusSquare, requiresAuth: true },
 ];
 
-// A sidebar that blends into the dark parallax background
 export function SiteSidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const { requireAuth } = useInteraction();
+  const { openModal } = useAuthModal();
 
   const handleMenuClick = (item: typeof menuItems[0], e: React.MouseEvent<HTMLAnchorElement>) => {
     if (item.requiresAuth && !user) {
       e.preventDefault();
-      requireAuth();
+      openModal('login');
     }
   };
 
   return (
     <aside className="h-full w-full flex flex-col p-4 text-white/90">
-      {/* Header */}
       <div className="flex items-center gap-2 px-2 py-4">
         <Waves className="h-7 w-7 text-sky-400" />
         <span className="text-xl font-bold">Stream</span>
       </div>
 
-      {/* Navigation Menu */}
       <nav className="flex-1 space-y-2 py-4">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
@@ -57,7 +54,6 @@ export function SiteSidebar() {
         })}
       </nav>
 
-      {/* Footer - User Profile or Login Button */}
       <div className="mt-auto space-y-2">
         {user ? (
           <>
@@ -82,12 +78,20 @@ export function SiteSidebar() {
             </Link>
           </>
         ) : (
-          <button
-            onClick={() => requireAuth()}
-            className="w-full rounded-full border border-white/20 bg-transparent py-3 text-lg font-semibold text-white/90 transition-all hover:bg-white/10"
-          >
-            Login
-          </button>
+          <div className="space-y-3 pt-4">
+            <button
+              onClick={() => openModal('register')}
+              className="w-full rounded-full bg-sky-500 py-3 text-lg font-bold text-white transition-all hover:bg-sky-600"
+            >
+              Register
+            </button>
+            <button
+              onClick={() => openModal('login')}
+              className="w-full rounded-full border border-white/20 bg-transparent py-3 text-lg font-semibold text-white/90 transition-all hover:bg-white/10"
+            >
+              Login
+            </button>
+          </div>
         )}
       </div>
     </aside>

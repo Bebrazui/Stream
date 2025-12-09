@@ -46,9 +46,8 @@ const LiquidGlass = forwardRef<HTMLDivElement, LiquidGlassProps>((
         'overflow-hidden',
         'rounded-lg',
         'border border-white/10',
-        'bg-white/10', // Увеличена прозрачность фона
+        'bg-white/5',
         'shadow-glassmorphism',
-        'backdrop-blur-xl', // Усилено размытие
         className
       )}
       {...motionProps}
@@ -57,7 +56,7 @@ const LiquidGlass = forwardRef<HTMLDivElement, LiquidGlassProps>((
       <div 
         className="pointer-events-none absolute -inset-px rounded-lg opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         style={{
-          background: `radial-gradient(200px at var(--mouse-x, -200px) var(--mouse-y, -200px), rgba(255,255,255,0.15), transparent 40%)` // Немного усилен эффект свечения
+          background: `radial-gradient(250px at var(--mouse-x, -250px) var(--mouse-y, -250px), rgba(255,255,255,0.1), transparent 50%)`
         }}
       />
       <div className="relative z-10">

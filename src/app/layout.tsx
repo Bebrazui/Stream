@@ -2,6 +2,7 @@
 import type { Metadata } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/context/auth-context';
+import { AuthModal } from '@/components/layout/auth-modal';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-slate-900">
         <AuthProvider>
+          <AuthModal />
           <main className="relative z-10">
             {children}
           </main>
