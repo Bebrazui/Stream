@@ -3,8 +3,14 @@
 import { z } from 'zod';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { Post, User, Comment, Community } from '@/types'; // Removed UserCredentials
+import { Post, User, Comment, Community } from '@/types';
 import { createSession, getSessionUser, deleteSession } from '@/lib/session';
+import axios from 'axios';
+import { randomUUID } from 'crypto';
+import { headers } from 'next/headers';
+
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_REPO_URL = process.env.GITHUB_REPO_URL;
 
 // --- Zod Schemas ---
 const postSchema = z.object({
@@ -78,7 +84,7 @@ export async function login(data: z.infer<typeof authSchema>) {
 export async function logout() {
     console.log("--- LOGIC KEPT: logout() ---");
     await deleteSession();
-    redirect('/');
+    redirect('/home');
 }
 
 // --- Community ---
@@ -104,13 +110,90 @@ export async function createCommunity(values: z.infer<typeof communitySchema>, c
 }
 
 // --- Post & Interaction ---
-export async function createPost(data: z.infer<typeof postSchema>): Promise<{ success: boolean; error?: string }> {
-    console.log("--- MOCKED: createPost() ---");
+export async function createPost(data: z.infer<typeof postSchema>): Promise<{ success: boolean; error?: any }> {
     const user = await getSessionUser();
-    if (!user) return { success: false, error: "Mock Auth: Please log in." };
-    await new Promise(resolve => setTimeout(resolve, 500));
-    revalidatePath('/');
-    return { success: true };
+    if (!user) {
+        const requestHeaders = headers();
+        const headersObject = Object.fromEntries(requestHeaders.entries());
+        return {
+            success: false,
+            error: {
+                message: "Authentication required. Please log in.",
+                debug_headers: headersObject
+            }
+        };
+    }
+
+    const validated = postSchema.safeParse(data);
+    if (!validated.success) {
+        return { success: false, error: "Invalid post data." };
+    }
+
+    const { content, category, imageUrl } = validated.data;
+
+    const newPost: Post = {
+        id: randomUUID(),
+        author: user,
+        content,
+        category,
+        imageUrl,
+        likes: 0,
+        comments: [],
+        commentCount: 0,
+        shares: 0,
+        createdAt: new Date().toISOString(),
+    };
+
+    try {
+        const repoUrl = GITHUB_REPO_URL?.replace('https://github.com/', '');
+        const apiUrl = `https://api.github.com/repos/${repoUrl}/contents/posts.json`;
+
+        let posts: Post[] = [];
+        let currentSha: string | undefined;
+
+        try {
+            const { data: fileData } = await axios.get(apiUrl, {
+                headers: {
+                    Authorization: `token ${GITHUB_TOKEN}`,
+                    Accept: 'application/vnd.github.v3+json',
+                },
+            });
+            const currentContent = Buffer.from(fileData.content, 'base64').toString('utf-8');
+            posts = JSON.parse(currentContent);
+            currentSha = fileData.sha;
+        } catch (error: any) {
+            if (error.response && error.response.status !== 404) {
+                throw error;
+            }
+        }
+
+        posts.unshift(newPost);
+
+        const updatedContent = Buffer.from(JSON.stringify(posts, null, 2)).toString('base64');
+
+        const requestBody: { message: string; content: string; sha?: string } = {
+            message: `New post by ${user.username}`,
+            content: updatedContent,
+        };
+
+        if (currentSha) {
+            requestBody.sha = currentSha;
+        }
+
+        await axios.put(apiUrl, requestBody, {
+            headers: {
+                Authorization: `token ${GITHUB_TOKEN}`,
+                Accept: 'application/vnd.github.v3+json',
+            },
+        });
+
+        revalidatePath('/');
+        return { success: true };
+
+    } catch (error) {
+        console.error("Error creating post:", error);
+        return { success: false, error: "Failed to create post on GitHub." };
+    }
 }
 
 export async function addComment(postId: string, text: string) {
@@ -144,9 +227,28 @@ export async function updateProfile(formData: FormData) {
 
 // --- Data Fetching ---
 export async function getPosts(): Promise<Post[]> {
-    console.log("--- MOCKED: getPosts() ---");
-    const mockPosts: Post[] = []; // Empty array for now
-    return mockPosts;
+    try {
+        const repoUrl = GITHUB_REPO_URL?.replace('https://github.com/', '');
+        const apiUrl = `https://api.github.com/repos/${repoUrl}/contents/posts.json`;
+
+        const { data: fileData } = await axios.get(apiUrl, {
+            headers: {
+                Authorization: `token ${GITHUB_TOKEN}`,
+                Accept: 'application/vnd.github.v3+json',
+            },
+        });
+
+        const content = Buffer.from(fileData.content, 'base64').toString('utf-8');
+        return JSON.parse(content);
+    } catch (error: any) {
+        if (error.response && error.response.status === 404) {
+            // If the file doesn't exist, return an empty array, which is a valid state.
+            return [];
+        }
+        console.error("Error fetching posts:", error);
+        // In case of other errors, returning an empty array to prevent app crash.
+        return [];
+    }
 }
 
 export async function getUsers(): Promise<User[]> {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, PlusSquare, Waves } from 'lucide-react';
+import { Home, Search, PlusSquare, Waves, Settings } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/auth-context';
 import { useInteraction } from '@/context/interaction-context';
@@ -58,8 +58,9 @@ export function SiteSidebar() {
       </nav>
 
       {/* Footer - User Profile or Login Button */}
-      <div className="mt-auto">
+      <div className="mt-auto space-y-2">
         {user ? (
+          <>
             <Link href={`/profile/${user.username}`}>
                 <div className="flex items-center gap-3 rounded-lg px-4 py-3 text-lg font-medium text-white/80 hover:bg-white/10 hover:text-white transition-colors">
                     <Avatar className="h-8 w-8 border border-white/30">
@@ -69,6 +70,17 @@ export function SiteSidebar() {
                     <span className="font-semibold">Profile</span>
                 </div>
             </Link>
+            <Link href="/settings/profile">
+                <div className={cn(
+                    'flex items-center gap-3 rounded-lg px-4 py-3 text-lg font-medium transition-colors',
+                    'text-white/80 hover:bg-white/10 hover:text-white',
+                    pathname.startsWith('/settings') && 'bg-white/20 text-white'
+                  )}>
+                    <Settings className="h-6 w-6" />
+                    <span>Settings</span>
+                </div>
+            </Link>
+          </>
         ) : (
           <button
             onClick={() => requireAuth()}

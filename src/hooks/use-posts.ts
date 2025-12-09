@@ -1,6 +1,8 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Post } from '@/types';
-import { placeholderPosts } from '@/lib/placeholder-data';
+import { getPosts } from '@/lib/actions';
 
 export function usePosts() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -8,16 +10,20 @@ export function usePosts() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      // Имитация загрузки данных
-      setTimeout(() => {
-        setPosts(placeholderPosts);
+    const fetchPosts = async () => {
+      try {
+        setIsLoading(true);
+        const fetchedPosts = await getPosts();
+        setPosts(fetchedPosts);
+      } catch (err) {
+        setError('Failed to fetch posts');
+        console.error(err);
+      } finally {
         setIsLoading(false);
-      }, 1000);
-    } catch (err) {
-      setError('Failed to fetch posts');
-      setIsLoading(false);
-    }
+      }
+    };
+
+    fetchPosts();
   }, []);
 
   return { posts, isLoading, error };
