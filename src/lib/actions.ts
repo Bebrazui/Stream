@@ -7,7 +7,6 @@ import { Post, User, Comment, Community } from '@/types';
 import { createSession, getSessionUser, deleteSession } from '@/lib/session';
 import axios from 'axios';
 import { randomUUID } from 'crypto';
-import { headers } from 'next/headers';
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GITHUB_REPO_URL = process.env.GITHUB_REPO_URL;
@@ -110,18 +109,10 @@ export async function createCommunity(values: z.infer<typeof communitySchema>, c
 }
 
 // --- Post & Interaction ---
-export async function createPost(data: z.infer<typeof postSchema>): Promise<{ success: boolean; error?: any }> {
+export async function createPost(data: z.infer<typeof postSchema>): Promise<{ success: boolean; error?: string }> {
     const user = await getSessionUser();
     if (!user) {
-        const requestHeaders = headers();
-        const headersObject = Object.fromEntries(requestHeaders.entries());
-        return {
-            success: false,
-            error: {
-                message: "Authentication required. Please log in.",
-                debug_headers: headersObject
-            }
-        };
+        return { success: false, error: "Authentication required. Please log in." };
     }
 
     const validated = postSchema.safeParse(data);

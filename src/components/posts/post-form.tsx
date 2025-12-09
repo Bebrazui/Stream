@@ -35,7 +35,7 @@ const postSchema = z.object({
 type PostFormValues = z.infer<typeof postSchema>;
 
 type PostFormProps = {
-  createPostAction: (data: PostFormValues) => Promise<{ success: boolean; error?: any }>;
+  createPostAction: (data: PostFormValues) => Promise<{ success: boolean; error?: string }>;
 };
 
 const categories: { value: PostCategory; label: string }[] = [
@@ -162,20 +162,10 @@ export function PostForm({ createPostAction }: PostFormProps) {
       form.reset();
       setImagePreview(null);
     } else {
-      // ВЫВОД РАСШИРЕННОЙ ОШИБКИ В КОНСОЛЬ БРАУЗЕРА
-      console.error("--- [CLIENT] ERROR CREATING POST ---", result.error);
-
-      let errorMessage = 'An unknown error occurred.';
-      if (typeof result.error === 'string') {
-        errorMessage = result.error;
-      } else if (result.error && typeof result.error.message === 'string') {
-        errorMessage = result.error.message;
-      }
-
       toast({
         variant: 'destructive',
         title: 'Failed to create post',
-        description: errorMessage,
+        description: result.error || 'An unknown error occurred.',
       });
     }
   }
